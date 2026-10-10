@@ -1,0 +1,351 @@
+/* Viettel Phú Hà — giao diện mới. Màu đỏ Viettel chỉ dùng cho hành động và điểm nhấn. */
+:root{
+  --red:#e4002b;--red-d:#b80022;--red-t:#fff0f2;
+  --ink:#15171c;--ink-2:#394050;--mute:#5d6573;--line:#e2e5ea;--mist:#f4f5f8;--paper:#fff;
+  --ok:#0e7a4d;--ok-t:#e8f6ef;--warn-t:#fff6e5;--warn-b:#f0d9a8;
+  --font:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:88px}
+body{margin:0;font:400 16px/1.6 var(--font);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1,h2,h3,h4,p,ul,ol,dl,dd{margin:0}
+ul,ol{padding:0;list-style:none}
+p{margin:0 0 .75em}
+a{color:inherit;text-decoration:none}
+img,svg{max-width:100%}
+small{font-size:13px}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:6px}
+.container{width:min(1200px,calc(100% - 48px));margin-inline:auto}
+.skip{position:absolute;left:12px;top:-60px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;z-index:100}
+.skip:focus{top:12px}
+.ic{width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- Nút & biểu mẫu ---------- */
+button,.button,a.outline{font:inherit;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 20px;border-radius:12px;border:1.5px solid var(--red);background:var(--red);color:#fff;cursor:pointer;text-align:center;line-height:1.3}
+button:hover,.button:hover{background:var(--red-d);border-color:var(--red-d)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.outline,button.outline,a.outline{background:#fff;color:var(--ink);border-color:var(--line)}
+.outline:hover,button.outline:hover,a.outline:hover{background:var(--mist);border-color:#c9ced6;color:var(--ink)}
+input,select,textarea{font:inherit;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:44px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);outline:3px solid rgba(21,23,28,.12);outline-offset:0}
+textarea{resize:vertical;min-height:96px}
+label{display:block;font-weight:500;font-size:14px;color:var(--ink-2)}
+label input,label select,label textarea{margin-top:6px;font-weight:400}
+.honeypot{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* ---------- Header ---------- */
+.site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:24px;min-height:72px}
+.brand{display:flex;align-items:center;gap:12px;flex:none}
+.brand-mark{width:40px;height:40px;flex:none}
+.brand strong{display:block;font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.brand small{display:block;color:var(--mute);font-size:12px;line-height:1.35}
+#main-nav{display:flex;gap:2px;margin-left:auto}
+#main-nav a{padding:9px 14px;border-radius:999px;font-weight:500;font-size:15px;color:var(--ink-2)}
+#main-nav a:hover{background:var(--mist)}
+#main-nav a.active{color:var(--red);background:var(--red-t);font-weight:600}
+.hotline{display:flex;align-items:center;gap:10px;background:var(--red);color:#fff;padding:7px 18px 7px 14px;border-radius:999px;flex:none}
+.hotline:hover{background:var(--red-d)}
+.hotline .ic{font-size:20px}
+.hotline small{display:block;font-size:11px;opacity:.9;line-height:1.2}
+.hotline b{display:block;font-size:16px;line-height:1.25;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.menu-toggle{display:none;width:44px;padding:0;background:#fff;color:var(--ink);border-color:var(--line)}
+.menu-toggle:hover{background:var(--mist);border-color:#c9ced6}
+
+/* ---------- Hero ---------- */
+.hero{background:var(--mist);padding:56px 0 64px;border-bottom:1px solid var(--line)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:56px;align-items:center}
+.hero h1{font-size:clamp(2.2rem,4.8vw,3.7rem);line-height:1.07;font-weight:800;letter-spacing:-.03em;max-width:17ch;text-wrap:balance;margin-bottom:18px}
+.lede{font-size:18px;line-height:1.6;color:var(--ink-2);max-width:56ch;margin-bottom:28px}
+.search{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--ink);border-radius:16px;padding:6px 6px 6px 16px;max-width:640px}
+.search>.ic{font-size:22px;color:var(--mute)}
+.search input{flex:1;border:0;outline:0;background:transparent;padding:12px 8px;font-size:17px;min-height:48px;font-variant-numeric:tabular-nums;margin:0;border-radius:0}
+.search input:focus{outline:0}
+.search:focus-within{border-color:var(--red);box-shadow:0 0 0 4px rgba(228,0,43,.16)}
+.search button{min-height:48px;padding:10px 26px;font-size:16px}
+.quick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--mute)}
+.quick a{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500;color:var(--ink-2)}
+.quick a:hover{border-color:var(--ink);color:var(--ink)}
+.hero-art{display:block}
+.hero-art svg{width:100%;height:auto;display:block;border-radius:28px}
+
+/* ---------- Đầu trang con ---------- */
+.page-head{background:var(--mist);border-bottom:1px solid var(--line);padding:28px 0 40px}
+.page-head h1{font-size:clamp(1.9rem,3.6vw,2.7rem);line-height:1.12;font-weight:800;letter-spacing:-.025em;margin:14px 0 10px}
+.page-head .lede{font-size:17px;margin-bottom:0;max-width:62ch}
+.page-head .search{margin-top:22px}
+.breadcrumb{font-size:14px;color:var(--mute)}
+.breadcrumb ol{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.breadcrumb li{display:flex;align-items:center;gap:6px}
+.breadcrumb li+li::before{content:'/';color:#aab0ba}
+.breadcrumb a:hover{color:var(--red)}
+.breadcrumb [aria-current]{color:var(--ink);font-weight:500}
+main.container.detail-main{padding-top:20px}
+
+/* ---------- Khối nội dung ---------- */
+.page-sections{display:grid;gap:56px;padding-block:56px 72px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px}
+.section-head,.section-heading{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+h2{font-size:clamp(1.4rem,2.4vw,1.75rem);line-height:1.2;font-weight:700;letter-spacing:-.02em}
+h3{font-size:17px;font-weight:600;line-height:1.35}
+.section-head a,.text-link{color:var(--red);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.section-head a:hover,.text-link:hover{color:var(--red-d);text-decoration:underline;text-underline-offset:3px}
+.section-note{font-size:14px;color:var(--mute);margin-top:18px;max-width:70ch}
+.notice{background:var(--warn-t);border:1px solid var(--warn-b);border-radius:12px;padding:12px 16px;font-size:14px;color:#5b4310}
+.inventory-error{margin-top:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.inventory-error button{min-height:36px;padding:6px 14px}
+
+/* Danh mục nhanh */
+.categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.categories a{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.categories a:hover{border-color:var(--ink)}
+.categories .cat-icon{width:46px;height:46px;border-radius:12px;background:var(--red-t);color:var(--red);display:grid;place-items:center;flex:none}
+.categories .cat-icon .ic{font-size:24px}
+.categories h3{font-size:16px}
+.categories small{color:var(--mute);display:block;line-height:1.4;margin-top:2px}
+.categories .chev{margin-left:auto;color:#a0a7b3}
+
+/* Danh sách sim + cột tư vấn */
+.home-columns{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:32px;align-items:start}
+.home-columns>aside{position:sticky;top:96px;display:grid;gap:16px}
+.consult-card{background:var(--ink);color:#fff;border-radius:20px;padding:26px}
+.consult-card h3{font-size:20px;font-weight:700;margin-bottom:14px;letter-spacing:-.01em}
+.consult-card ul{display:grid;gap:10px;margin-bottom:20px}
+.consult-card li{display:flex;gap:10px;color:#dfe2e8;font-size:15px;line-height:1.45}
+.consult-card li .ic{color:#ff8a9d;margin-top:2px}
+.consult-card .button{width:100%}
+.consult-card .outline{width:100%;margin-top:10px;background:transparent;color:#fff;border-color:#4a505c}
+.consult-card .outline:hover{background:#262a33;color:#fff;border-color:#6b7280}
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:16px}
+.home-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.sim-card{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:16px;min-width:0}
+.sim-card:hover{border-color:var(--ink)}
+.sim-top{display:block;padding:18px 18px 12px}
+.sim-top .sim-ic{width:44px;height:30px;color:var(--red)}
+.sim-number{font-size:clamp(21px,1.9vw,25px);font-weight:700;letter-spacing:-.01em;line-height:1.2;margin:14px 0 10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sim-number em{font-style:normal;color:var(--red)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tags span,.tag{font-size:12.5px;font-weight:500;color:var(--ink-2);background:var(--mist);border-radius:999px;padding:3px 10px;line-height:1.5}
+.price{display:block;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.stock{display:inline-flex;align-items:center;gap:6px;color:var(--mute);margin-top:2px}
+.stock::before{content:'';width:7px;height:7px;border-radius:50%;background:#a0a7b3}
+.stock.green{color:var(--ok)}
+.stock.green::before{background:var(--ok)}
+.card-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 16px;margin-top:auto}
+.card-actions>*{min-height:42px;padding:8px 10px;font-size:14px}
+.home-grid .card-actions,.related .card-actions{grid-template-columns:1fr}
+.sim-top .tags{padding-right:44px}
+.heart{position:absolute;top:12px;right:12px;width:38px;min-height:38px;height:38px;padding:0;border-radius:50%;background:#fff;color:var(--mute);border:1px solid var(--line)}
+.heart:hover{background:var(--red-t);color:var(--red);border-color:var(--red-t)}
+.heart.saved{color:var(--red);background:var(--red-t);border-color:var(--red-t)}
+.heart.saved .ic,.product-tools [aria-pressed=true] .ic{fill:currentColor}
+
+.inventory-loading{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:28px;color:var(--mute);border:1px dashed var(--line);border-radius:16px;justify-content:center}
+.loading-dot{width:10px;height:10px;border-radius:50%;background:var(--red);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+.empty{grid-column:1/-1;text-align:center;padding:40px 20px;border:1px dashed var(--line);border-radius:16px}
+.empty h3{font-size:19px;margin-bottom:6px}
+.empty p{color:var(--mute);margin-bottom:18px}
+
+/* Các bước mua */
+.step-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;counter-reset:s}
+.step-card{display:flex;gap:16px;align-items:flex-start;padding-top:20px;border-top:2px solid var(--ink)}
+.step-number{width:36px;height:36px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.step-card h3{margin-bottom:4px}
+.step-card p{color:var(--ink-2);font-size:15px;margin:0}
+
+/* Cơ sở */
+.branch-grid,.branch-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.branch{border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:6px;background:#fff}
+.branch h3{display:flex;align-items:center;gap:8px}
+.branch h3 .ic{color:var(--red)}
+.branch p{color:var(--ink-2);font-size:15px;margin:0 0 8px}
+.branch a.outline{margin-top:auto;min-height:40px;font-size:14px}
+.branch small{color:var(--mute);line-height:1.4}
+
+.store-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;background:var(--mist);border-color:var(--mist)}
+.store-intro p{color:var(--ink-2);margin:10px 0 0;max-width:70ch}
+
+/* Cam kết */
+.guarantees{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.guarantees>div{display:flex;gap:14px;align-items:flex-start;padding:18px;border:1px solid var(--line);border-radius:16px}
+.guarantees i{width:42px;height:42px;border-radius:50%;background:var(--ok-t);color:var(--ok);display:grid;place-items:center;flex:none;font-style:normal}
+.guarantees b{display:block;font-size:15px;font-weight:600;line-height:1.3}
+.guarantees small{display:block;color:var(--mute);line-height:1.45;margin-top:2px}
+
+.seo-copy{max-width:78ch}
+.seo-copy h2{margin-bottom:12px}
+.seo-copy p{color:var(--ink-2)}
+
+/* ---------- Kho sim ---------- */
+.catalog-filters .section-head{margin-bottom:16px}
+.filter-toggle{display:none}
+.filter-row{display:grid;grid-template-columns:1.3fr repeat(6,minmax(0,1fr));gap:12px;align-items:end}
+.filter-row .filter-buttons{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.element-section .elements{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.element{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--line);border-radius:14px;background:#fff}
+.element:hover,.element.chosen{border-color:var(--ink)}
+.element.chosen{background:var(--mist)}
+.element i{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-style:normal;font-weight:700;flex:none}
+.element h3{font-size:16px}
+.element b{font-size:13px;font-weight:400;color:var(--mute)}
+.results{color:var(--mute);margin-bottom:18px;font-size:15px}
+.pagination{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:28px;color:var(--mute)}
+.help-card{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;background:var(--mist);border-color:var(--mist)}
+.help-card p{margin:6px 0 0;color:var(--ink-2)}
+
+/* ---------- Chi tiết sim ---------- */
+.detail-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:32px;align-items:start}
+.detail-layout>section{display:grid;gap:24px}
+.detail-layout>aside{position:sticky;top:96px}
+.product{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:32px;align-items:start}
+.product-image{position:relative;border-radius:20px;overflow:hidden;background:var(--red);aspect-ratio:4/5;display:grid;place-items:center}
+.product-image svg{width:100%;height:100%;display:block}
+.product-info h1{font-size:clamp(1.9rem,3.4vw,2.6rem);font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:12px 0;font-variant-numeric:tabular-nums}
+.product-info h1 em{font-style:normal;color:var(--red)}
+.sim-description{color:var(--ink-2);margin-bottom:18px}
+.price-box{display:flex;gap:28px;flex-wrap:wrap;padding:16px 0;border-block:1px solid var(--line);margin-bottom:18px;color:var(--mute);font-size:14px}
+.price-box strong{display:block;font-size:28px;font-weight:800;color:var(--ink);letter-spacing:-.02em;line-height:1.25}
+.price-box b{display:block;color:var(--ink);font-size:16px;margin-top:6px}
+.product-info dl{display:grid;grid-template-columns:150px 1fr;gap:10px 16px;font-size:15px;margin-bottom:20px}
+.product-info dt{color:var(--mute)}
+.product-info dd{font-weight:500}
+.green{color:var(--ok)}
+.product-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.product-tools button{min-height:40px;padding:8px 16px;font-size:14px}
+.mobile-order-link{width:100%;display:none}
+.support-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.support-cards article{border:1px solid var(--line);border-radius:14px;padding:18px}
+.support-cards h3{margin-bottom:6px}
+.support-cards p{color:var(--ink-2);font-size:15px;margin:0}
+.red{color:var(--red)}
+
+/* ---------- Biểu mẫu tư vấn ---------- */
+.order h3,.contact-request h2{font-size:19px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.order>p{color:var(--ink-2)}
+.request-form{display:grid;gap:14px;margin-top:16px}
+.request-form label{margin:0}
+.request-form .notice{margin:0}
+.consent{display:flex!important;gap:10px;align-items:flex-start;font-weight:400;font-size:14px;line-height:1.5}
+.consent input{width:20px;min-height:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--red)}
+.consent a{text-decoration:underline;text-underline-offset:2px}
+.form-error{color:#b00020;font-size:14px;margin:0}
+.form-error:empty{display:none}
+.form-availability[hidden]{display:none}
+.form-call{display:flex;justify-content:center;gap:8px;min-height:44px;align-items:center;border:1.5px solid var(--line);border-radius:12px;font-weight:600}
+.form-call:hover{background:var(--mist)}
+.success-message{background:var(--ok-t);border-radius:14px;padding:24px;text-align:center}
+.success-message h2{font-size:20px;margin-bottom:6px}
+.success-message p{margin:0;color:var(--ink-2)}
+
+/* ---------- Liên hệ ---------- */
+.contact-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start}
+.contact-info h2{margin-bottom:18px}
+.contact-info dl{display:grid;grid-template-columns:120px 1fr;gap:10px 16px;margin-bottom:22px}
+.contact-info dt{color:var(--mute)}
+.contact-info dd{font-weight:500}
+.contact-info .branch-cards{grid-template-columns:1fr;margin-top:16px}
+.faq details{border-top:1px solid var(--line)}
+.faq details:last-child{border-bottom:1px solid var(--line)}
+.faq summary{cursor:pointer;list-style:none;font-weight:600;padding:18px 36px 18px 0;position:relative}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'';position:absolute;right:6px;top:50%;width:9px;height:9px;border:solid var(--ink);border-width:0 2px 2px 0;transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+.faq details[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+.faq details p{color:var(--ink-2);padding:0 0 18px;margin:0;max-width:70ch}
+.faq h2{margin-bottom:12px}
+.policy-page{max-width:860px}
+.policy-page h1{font-size:clamp(1.9rem,3.4vw,2.5rem);font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.policy-page h2{margin-bottom:10px;font-size:1.3rem}
+.policy-text,.policy-page p{color:var(--ink-2);white-space:pre-line}
+.not-found{text-align:center;padding-block:96px}
+.not-found h1{font-size:clamp(2rem,4vw,3rem);font-weight:800;margin-bottom:10px}
+.not-found p{color:var(--ink-2);margin-bottom:24px}
+
+/* ---------- Hộp thoại & thông báo ---------- */
+dialog#consult-dialog{width:min(520px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:0;border-radius:22px;padding:20px;box-shadow:0 24px 80px rgba(21,23,28,.28);color:var(--ink);overflow:auto}
+dialog#consult-dialog::backdrop{background:rgba(21,23,28,.55)}
+.consult-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.consult-dialog-head h2{font-size:20px}
+.consult-dialog-head button{width:40px;min-height:40px;padding:0}
+dialog#consult-dialog .panel{border:0;padding:0}
+body.consult-open{overflow:hidden}
+#toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:90;max-width:calc(100% - 32px)}
+#toast.visible{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Footer ---------- */
+.site-footer{background:var(--ink);color:#c9cdd6;margin-top:0}
+.footer-grid{display:grid;grid-template-columns:1.3fr 1.4fr 1fr 1fr;gap:40px;padding-block:56px 40px}
+.site-footer strong{display:block;color:#fff;font-size:20px;font-weight:700;margin-bottom:6px}
+.f-title{color:#fff;font-weight:600;margin-bottom:14px;font-size:15px}
+.site-footer p{margin:0 0 8px;font-size:14.5px;line-height:1.55}
+.site-footer li{margin-bottom:10px;font-size:14.5px;line-height:1.5}
+.site-footer li b{color:#fff;font-weight:600}
+.site-footer a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.f-phone{display:inline-flex;align-items:center;gap:8px;color:#fff;font-size:22px;font-weight:700;margin:14px 0 8px;font-variant-numeric:tabular-nums}
+.footer-bottom{border-top:1px solid #2c313b;padding-block:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:#9aa1ad}
+.mobile-actions{display:none}
+
+/* ---------- Responsive ---------- */
+@media(max-width:1100px){
+  .hero-grid{grid-template-columns:1fr;gap:32px}
+  .hero-art{display:none}
+  .hero h1{max-width:18ch}
+  .categories{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-columns,.detail-layout{grid-template-columns:1fr}
+  .mobile-order-link{display:inline-flex}
+  .home-columns>aside,.detail-layout>aside{position:static}
+  .guarantees{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .filter-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .filter-row .filter-query{grid-column:1/-1}
+  .element-section .elements{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .hotline small{display:none}
+}
+@media(max-width:820px){
+  .container{width:calc(100% - 32px)}
+  .nav{gap:12px;min-height:64px;flex-wrap:wrap}
+  .brand small{display:none}
+  .brand{margin-right:auto}
+  .hotline{width:44px;height:44px;padding:0;justify-content:center}
+  .hotline span{display:none}
+  .menu-toggle{display:inline-flex}
+  #main-nav{display:none;order:5;width:100%;flex-direction:column;margin:0 0 12px;padding-top:8px;border-top:1px solid var(--line)}
+  #main-nav.open{display:flex}
+  #main-nav a{padding:12px 14px;border-radius:12px;font-size:16px}
+  .hero{padding:36px 0 40px}
+  .page-sections{gap:44px;padding-block:40px 56px}
+  .panel{padding:20px;border-radius:16px}
+  .step-cards,.branch-grid,.branch-cards,.support-cards,.contact-grid{grid-template-columns:1fr}
+  .product{grid-template-columns:1fr}
+  .product-image{aspect-ratio:16/9}
+  .store-intro{grid-template-columns:1fr}
+  .filter-toggle{display:inline-flex;min-height:40px;padding:8px 16px}
+  .filters{display:none}
+  .filters.open{display:grid}
+  .filter-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body{padding-bottom:68px}
+  .mobile-actions{position:fixed;inset:auto 0 0 0;z-index:60;display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+  .mobile-actions a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;font-size:12px;font-weight:500;color:var(--ink-2);border-radius:10px}
+  .mobile-actions a .ic{font-size:22px}
+  .mobile-actions a.call{color:var(--red)}
+  #toast{bottom:84px}
+}
+@media(max-width:520px){
+  .categories,.guarantees{grid-template-columns:1fr}
+  .search{flex-wrap:wrap;padding:10px}
+  .search>.ic{display:none}
+  .search input{flex:1 1 100%;padding:8px}
+  .search button{width:100%}
+  .sim-grid,.home-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .sim-top{padding:14px 14px 8px}
+  .sim-number{font-size:19px}
+  .card-actions{grid-template-columns:1fr;padding:0 12px 12px}
+  .filter-row{grid-template-columns:1fr}
+  .element-section .elements{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .footer-grid{grid-template-columns:1fr;gap:28px;padding-block:40px 24px}
+  .product-info dl,.contact-info dl{grid-template-columns:110px 1fr}
+  .hotline{padding:7px 12px}
+  .hotline b{font-size:14px}
+}
+@media(max-width:380px){.sim-grid,.home-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
