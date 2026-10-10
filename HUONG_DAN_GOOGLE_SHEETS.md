@@ -2,7 +2,9 @@
 
 Website chạy trên GitHub Pages. Apps Script đọc kho sim và ghi yêu cầu mới vào Google Sheets. Trang quản trị nằm trên Apps Script và cần mật khẩu của cửa hàng. Không cần VPS, tài khoản khách hoặc thanh toán trên website.
 
-URL Apps Script bạn gửi đã được đặt trong `site-config.js`. Các bước 1–3 dành cho thiết lập lần đầu. Nếu kho sim đã hiển thị và admin đã hoạt động, chuyển tới bước 4; bản sửa giao diện hiện ngay và nút mua sim không yêu cầu thay mã Apps Script.
+URL Apps Script bạn gửi đã được đặt trong `site-config.js`. Các bước 1–3 dành cho thiết lập lần đầu. Nếu kho sim đã hiển thị và admin đã hoạt động, giữ nguyên Sheet và mật khẩu; bước 4 hướng dẫn quản lý hằng ngày.
+
+Tính năng **thông báo Zalo Bot** mới cần cập nhật mã và cấp thêm quyền. Dùng [HUONG_DAN_ZALO_BOT.md](HUONG_DAN_ZALO_BOT.md) nếu cửa hàng đã hoạt động; không tạo lại Sheet.
 
 ## 1. Chuẩn bị Google Sheet riêng tư
 
@@ -41,6 +43,7 @@ Mở URL Apps Script thêm **`?view=admin`**, đăng nhập bằng mật khẩu 
 - **Kho sim:** thêm/sửa từng sim, giá, cơ sở, tình trạng; nhập CSV hoặc dán bảng từ Excel. Có tải mẫu CSV. Tối đa 5.000 sim mỗi lần. Tệp lỗi hoặc trùng bị từ chối toàn bộ.
 - **Cấu hình cửa hàng:** bổ sung giờ mở cửa, Zalo, tên miền. Điền ô **Chính sách sử dụng tên/số điện thoại để gọi tư vấn**, bấm **Lưu cấu hình** để bật gửi yêu cầu. Nếu mục này trống, khách vẫn mở được form bằng nút Mua sim nhưng nút gửi bị khóa và có link gọi hotline.
 - **Khách cần tư vấn:** xem tên, số điện thoại, sim đã chọn, giá lúc gửi; gọi khách, ghi chú, hẹn gọi lại và đổi trạng thái **Mới → Đã liên hệ → Đã xử lý**.
+- **Thông báo Zalo:** lưu token bot riêng tư, chọn nơi nhận, gửi thử, bật/tắt lịch gửi và kiểm tra thông báo lỗi. Làm theo hướng dẫn bot trước khi bật.
 
 Nếu soạn bằng Excel, cột `number` phải định dạng **Text** trước khi dán số để giữ số 0 đầu. Lưu **CSV UTF-8** hoặc sao chép bảng gồm cả tiêu đề vào ô nhập admin. Không tải trực tiếp `.xlsx`; không dùng công thức. Cơ sở: `cs1`, `cs2`, `cs3`; tình trạng: `available`, `reserved`, `sold`, `hidden`.
 
