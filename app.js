@@ -1,7 +1,7 @@
 /* ===== 1. CẤU HÌNH CỬA HÀNG (sửa scriptUrl ở đây khi đổi Apps Script) ===== */
 /* Dán URL Web App /exec của Apps Script vào đây. Không đặt mật khẩu trong tệp này. */
 window.STORE_CONFIG = {
-  scriptUrl: 'https://script.google.com/macros/s/AKfycbyaN6CyCGo4Jjo-BUIy-ojGnSopHLBaxCBkzLMDcC3gg7sISl0mbVYFIRfRWVgi__Yq/exec',
+  scriptUrl: 'https://script.google.com/macros/s/AKfycbyOqVfgrtxYXDyoE5iES7JOr6CAghE0cxqqhdgcfrFP-GY6_PS4mySO5gno7xhWVDPx/exec',
   name: 'Viettel Phú Hà', phone: '0344.639.666', email: 'thuntlpto.9x@gmail.com',
   tagline: 'Kết nối giá trị - Đồng hành cùng bạn',
   hours: '', zalo_url: '', site_url: '', banner_url: '', privacy_policy: '', registration_policy: '',
