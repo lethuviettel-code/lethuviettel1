@@ -6,7 +6,18 @@ const path=require('node:path');
 const {chromium}=require('playwright');
 const {createStore}=require('./sheets-harness.cjs');
 let server,browser,base;const errors=[];
-before(async()=>{server=http.createServer((req,res)=>{const u=new URL(req.url,'http://localhost');let name=u.pathname;if(name==='/test-admin')name='/apps-script/Admin.html';else if(name.startsWith('/lethuviettel1/'))name=name.slice('/lethuviettel1'.length);else {res.writeHead(404).end();return;}if(name==='/')name='/index.html';const file=path.resolve('.'+name);if(!file.startsWith(process.cwd()+path.sep)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404).end();return;}const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'text/plain'});res.end(fs.readFileSync(file));});await new Promise(r=>server.listen(0,'127.0.0.1',r));base='http://127.0.0.1:'+server.address().port;browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});});
+before(async()=>{
+ const publicFiles=new Set(['index.html','admin.html','app.js','admin.js','site-config.js','sheets-client.js','styles.css','favicon.svg','sim.svg','landscape.svg','CNAME']);
+ server=http.createServer((req,res)=>{
+  const u=new URL(req.url,'http://localhost');let name=u.pathname;
+  if(name==='/test-admin')name='/AppsScript-Admin.html';
+  else {if(name.startsWith('/lethuviettel1/'))name=name.slice('/lethuviettel1'.length);if(name==='/')name='/index.html';if(!publicFiles.has(name.slice(1))){res.writeHead(404).end();return;}}
+  const file=path.resolve('.'+name);if(!file.startsWith(process.cwd()+path.sep)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404).end();return;}
+  const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'text/plain'});res.end(fs.readFileSync(file));
+ });
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));base='http://127.0.0.1:'+server.address().port;
+ browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+});
 after(async()=>{await browser?.close();await new Promise(r=>server.close(r));});
 function fixture(){const s=createStore(),token=s.setup();s.context.adminSettings(token,{privacy_policy:'Thông tin chỉ dùng để gọi tư vấn.'});s.context.adminImport(token,Array.from({length:1000},(_,i)=>({number:'0868'+String(i).padStart(6,'0'),price:1000000+i*10000,type:['Sim tứ quý','Sim lộc phát','Sim tam hoa'][i%3],branch:['cs1','cs2','cs3'][i%3],status:'available',featured:i<8,element:['Kim','Mộc','Thủy','Hỏa','Thổ'][i%5]})));return {...s,token,password:s.logs.find(s=>s.startsWith('Mật khẩu quản trị mới')).split(': ').pop()};}
 async function pageFor(width=390,height=844){const context=await browser.newContext({viewport:{width,height},isMobile:width<850,hasTouch:width<850});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));return {context,page};}
@@ -105,4 +116,17 @@ test('Admin explains a stored token and recovers discovery after a Zalo timeout 
  const s=fixture(),{context,page}=await pageFor(320,750);s.context.adminZaloSettings(s.token,{bot_token:'1234567890123456:timeout_fixture_not_a_real_secret',recipients:[],enabled:false});
  let waiting=true;s.controls.fetch=()=>({getResponseCode:()=>waiting?408:200,getContentText:()=>JSON.stringify(waiting?{ok:false,error_code:408}:{ok:true,result:{message:{chat:{id:'fixture-after-timeout',chat_type:'PRIVATE'},from:{display_name:'Người nhận thử'},text:'Nhận thông báo'}}})});
  try{await admin(page,s);await page.locator('#tab').selectOption('zalo');await page.getByText('Đã lưu token.',{exact:false}).waitFor();assert.equal(await page.locator('[name=bot_token]').inputValue(),'');await page.locator('#zalo-chats').tap();await page.locator('#zalo-recipients').filter({hasText:'hết thời gian chờ (408)'}).waitFor();assert.equal(await page.locator('#zalo-error').innerText(),'');assert.equal(await page.locator('[name=enabled]').isChecked(),false);assert.equal(await page.locator('.zalo-recipient').count(),0);waiting=false;await page.locator('#zalo-chats').tap();await page.locator('[name=choose_chat]').selectOption('fixture-after-timeout');assert.equal(await page.locator('.zalo-recipient').count(),1);assert.equal(await page.locator('[name=chat_id]').inputValue(),'fixture-after-timeout');}finally{await context.close();}
+});
+
+test('Flat files serve the custom-domain root with working images, hash routes, consultation and admin entry',async()=>{
+ const s=fixture(),{context,page}=await pageFor(320,750);
+ try{
+  await connect(page,s);await page.goto(base+'/');await ready(page);assert.equal(await page.locator('.home-grid .sim-card').count(),8);
+  assert.ok(await page.locator('img').evaluateAll(a=>a.every(e=>e.complete&&e.naturalWidth>0)));
+  assert.match(await page.locator('.scenery').evaluate(e=>getComputedStyle(e).backgroundImage),/\/landscape\.svg/);
+  assert.match(await page.locator('.hero-art img').getAttribute('src'),/sim\.svg$/);
+  await page.locator('.sim-card [data-buy]').first().tap();const modal=page.locator('#consult-dialog'),form=modal.locator('.request-form');await form.locator('[name=name]').fill('Khách tên miền chính');await form.locator('[name=phone]').fill('0981234567');await form.locator('[name=consent]').check();await form.locator('.buy').tap();await form.locator('.success-message').waitFor();assert.equal(s.context.adminData(s.token).leads.length,1);
+  await page.goto(base+'/#/kho-sim');await ready(page);assert.ok(await page.locator('.sim-card').count()>0);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=320));await page.reload();await ready(page);
+  await page.goto(base+'/admin.html');assert.match(await page.locator('#admin-entry a').getAttribute('href'),/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec\?view=admin$/);
+ }finally{await context.close();}
 });

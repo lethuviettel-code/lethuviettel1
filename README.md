@@ -1,20 +1,31 @@
 # Viettel Phú Hà
 
-Website tĩnh + Google Apps Script + Google Sheets. Không cần VPS.
+Website + Google Apps Script + Google Sheets. Repository chỉ còn các tệp ở thư mục gốc. Đã bỏ máy chủ Python/SQLite, Docker, hướng dẫn VPS và kiểm thử của bản cũ.
 
-- Website chạy trên GitHub Pages, tương thích thư mục `/lethuviettel1/` và tên miền riêng.
-- Khách chọn sim, nhập tên/số điện thoại để cửa hàng gọi tư vấn.
-- Giao diện hiển thị ngay từ HTML; kho sim và cấu hình cập nhật ở nền. Nút **Mua sim** mở biểu mẫu ngay trên trang, cả trên điện thoại.
-- Sheet `KhoSim` lưu kho; sheet `YeuCau` nhận yêu cầu mới; `CauHinh` lưu thông tin cửa hàng.
-- Admin trên Apps Script có mật khẩu, nhập CSV hoặc bảng Excel, sửa giá/tình trạng và ghi chú gọi lại.
-- Bot Zalo gửi riêng yêu cầu mới cho tối đa 20 người quản lý; thêm/xóa người trong admin, gửi thử và xử lý lỗi riêng cho từng người. Token được giữ riêng trong Apps Script.
-- Không có đăng nhập khách hoặc thanh toán.
+**Sau khi thu gọn, chọn nguồn xuất bản một lần:** GitHub → **Settings → Pages → Source: Deploy from a branch → Branch: main → /(root) → Save**. Giữ tên miền **simdep68.vn**. Từ đó, mỗi lần đẩy mã lên `main`, GitHub Pages xuất bản lại từ các tệp ở gốc.
 
-**Thiết lập lần đầu theo [HUONG_DAN_GOOGLE_SHEETS.md](HUONG_DAN_GOOGLE_SHEETS.md).** URL Apps Script đã được điền trong `site-config.js`. Nếu kho sim đã hiện và admin đã hoạt động, giữ nguyên Sheet và mật khẩu, cập nhật tính năng bot theo hướng dẫn bên dưới. Vào **Cấu hình cửa hàng**, lưu **Chính sách sử dụng tên/số điện thoại để gọi tư vấn** để bật gửi yêu cầu. Không đưa Sheet hoặc mật khẩu quản trị ra công khai.
+## Các tệp cần dùng
 
-**Bật tính năng bot mới theo [HUONG_DAN_ZALO_BOT.md](HUONG_DAN_ZALO_BOT.md):** cần cập nhật Code.gs và Admin.html, chạy setupZaloNotifications để cấp thêm quyền, triển khai phiên bản mới rồi kết nối bot trong admin. Không tạo lại Sheet hay mật khẩu.
+| Mục đích | Tệp |
+|---|---|
+| Website khách hàng | `index.html`, `app.js`, `styles.css`, `sim.svg`, `landscape.svg`, `favicon.svg` |
+| Kết nối Google và mở admin | `site-config.js`, `sheets-client.js`, `admin.html`, `admin.js` |
+| Mã để dán vào Apps Script | [Code.gs](Code.gs), [AppsScript-Admin.html](AppsScript-Admin.html), [appsscript.json](appsscript.json) |
+| Tên miền và xuất bản | `CNAME`, `_config.yml` |
+| Công cụ và kiểm thử | `build.cjs`, `package.json`, `package-lock.json`, `sheets-harness.cjs`, `sheets.test.cjs`, `static-browser.test.cjs` |
+| Hướng dẫn chung | [HUONG_DAN.md](HUONG_DAN.md) |
 
-## Phát triển và kiểm thử
+Trong Apps Script, tệp HTML vẫn có tên **Admin** hoặc **admin**. `AppsScript-Admin.html` là tên tệp nguồn trên GitHub để phân biệt với `admin.html` — trang mở quản trị của website. Việc chuyển tệp về gốc không yêu cầu dán lại mã Google đã hoạt động.
+
+## Vận hành
+
+Khách chọn sim → nhập tên/số điện thoại → cửa hàng gọi tư vấn. Admin quản lý sim, nhập Excel/CSV, ghi chú và hẹn gọi lại. Bot Zalo gửi riêng yêu cầu mới cho tối đa 20 người; có gửi thử và xử lý lỗi riêng.
+
+Kho sim, yêu cầu khách và cấu hình vẫn ở **Google Sheets**; token bot và bảo mật admin ở **Apps Script**. Việc thu gọn GitHub không xóa hoặc chuyển dữ liệu Google. Website không dùng Supabase, VPS, đăng nhập khách hoặc thanh toán.
+
+Trong admin → **Cấu hình cửa hàng**, lưu chính sách sử dụng tên/số điện thoại để bật gửi yêu cầu. Thiết lập Google, kết nối Zalo và xử lý lỗi 408 được hướng dẫn trong [HUONG_DAN.md](HUONG_DAN.md).
+
+## Phát triển
 
 ```sh
 npm ci
@@ -23,17 +34,13 @@ npm test
 npm run build
 ```
 
-`npm start` phục vụ các tệp tĩnh bằng Python 3 trên cổng 3000. `npm test` chạy kiểm thử Apps Script bằng mô phỏng dịch vụ Google và kiểm thử Chromium (cài sẵn `/usr/bin/chromium`). Kiểm thử dùng dữ liệu giả trong bộ nhớ; không ghi vào Sheet thật. `npm run build` cần Node.js và Python 3, tạo `dist/` với giao diện trang chủ dựng sẵn, chỉ gồm tệp website.
+`npm start` dựng và phục vụ website trên cổng 3000 bằng Python 3. `npm run build` dùng Node.js tạo `dist/` chỉ gồm tệp website. `dist/`, thư viện và kết quả kiểm thử được bỏ qua khi commit; không tạo thư mục trong repository trên GitHub.
 
-Các phép thử mô phỏng không thay thế bước gửi thử trên Google thật. Đã kiểm tra đọc cấu hình và kho sim từ Apps Script thật; chưa gửi yêu cầu vào Sheet thật hoặc kiểm thử Safari/iPhone thật. Kiểm thử điện thoại dùng Chromium giả lập cảm ứng ở độ rộng 320–430 px.
+Khi sửa mã giao diện hoặc `site-config.js`, chạy **`npm run build:root`** để cập nhật HTML có sẵn trong `index.html`, rồi commit tệp này cùng mã đã sửa. `_config.yml` loại mã Apps Script, tài liệu, thư viện và kiểm thử khỏi bản GitHub Pages.
 
-Các nội dung chính có khung và viền rõ: kho sim, bộ lọc, ngũ hành, thông tin sim, hướng dẫn mua, liên hệ, cơ sở, câu hỏi thường gặp và chính sách. Mạng chậm chỉ hiển thị trạng thái chờ ở vùng dữ liệu, không làm mờ hay khóa thao tác toàn trang.
+`npm test` dùng Google/Zalo mô phỏng và Chromium cảm ứng ở màn hình 320–430 px; không ghi vào Sheet hoặc gửi Zalo thật. Cần gửi thử trên Google/Zalo thật để xác nhận quyền, token và nơi nhận. Chưa kiểm thử trên Safari/iPhone thật.
 
-Backend Python/SQLite và các kiểm thử cũ còn trong repo để giữ tham chiếu/lịch sử; không chạy trong luồng mới. Không nhập dữ liệu cũ tự động.
-
-## Thông tin cửa hàng
-
-Viettel Phú Hà · 0344.639.666 · thuntlpto.9x@gmail.com
+Viettel Phú Hà · **0344.639.666** · **thuntlpto.9x@gmail.com**
 
 - CS1: KCN Phú Hà, thị xã Phú Thọ, Phú Thọ
 - CS2: Thanh Miếu, Việt Trì, Phú Thọ

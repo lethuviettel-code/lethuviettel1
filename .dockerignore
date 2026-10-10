@@ -1,9 +1,0 @@
-.git
-.venv
-node_modules
-data
-test-results
-tests
-.env
-*.log
-__pycache__

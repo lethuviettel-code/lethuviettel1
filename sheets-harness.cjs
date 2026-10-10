@@ -22,7 +22,7 @@ function createStore(){
  ContentService:{createTextOutput:output,MimeType:{JSON:'application/json',JAVASCRIPT:'application/javascript'}},
  HtmlService:{createHtmlOutputFromFile:()=>({setTitle(){return this;},addMetaTag(){return this;}})}
  });
- vm.runInContext(fs.readFileSync('apps-script/Code.gs','utf8'),context);
+ vm.runInContext(fs.readFileSync('Code.gs','utf8'),context);
  function setup(){context.setupStore();const pwd=logs.find(s=>s.startsWith('Mật khẩu quản trị mới')).split(': ').pop();return context.adminLogin(pwd).token;}
  return {context,sheets,properties,cache,logs,identity,controls,requests,triggers,advance:ms=>controls.now+=ms,setup,publicRead:p=>JSON.parse(JSON.stringify(context.publicRead_(p))),post:d=>JSON.parse(context.doPost({postData:{contents:JSON.stringify(d)}}).value)};
 }
