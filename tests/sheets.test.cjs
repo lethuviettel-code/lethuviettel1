@@ -148,3 +148,11 @@ test('Recipient validation is atomic, caps the list at 20 and the worker limits 
  for(let i=0;i<3;i++){s.advance(60000);s.context.processZaloNotifications_();}assert.equal(s.context.adminZaloStatus(s.token).counts.sent,20);assert.equal(new Set(sentTo(s)).size,20);
  s.context.adminZaloSettings(s.token,{recipients:[],enabled:false});assert.equal(s.triggers.length,0);assert.equal(s.context.adminZaloStatus(s.token).recipients.length,0);
 });
+
+test('Zalo discovery timeouts return a recoverable empty result; authentication errors still fail and send timeouts remain uncertain',()=>{
+ const s=fixture();connectBot(s,false);
+ for(const httpCode of [200,408]){s.controls.fetch=()=>botResponse({ok:false,error_code:408,description:'Request timeout'},httpCode);const result=s.context.adminZaloChats(s.token);assert.equal(result.chats.length,0);assert.equal(result.timed_out,true);}
+ s.controls.fetch=()=>botResponse({ok:false,error_code:401},401);assert.throws(()=>s.context.adminZaloChats(s.token),/Token Zalo không còn hợp lệ/);
+ s.controls.fetch=()=>botResponse({ok:true,result:{message:{chat:{id:'new-fixture-recipient'},from:{display_name:'Quản lý'}}}});assert.equal(s.context.adminZaloChats(s.token).chats[0].id,'new-fixture-recipient');
+ s.context.adminZaloSettings(s.token,{chat_id:'chat-fixture-1',enabled:true});s.post(lead(1));s.controls.fetch=()=>botResponse({ok:false,error_code:408},408);s.context.processZaloNotifications_();assert.equal(s.context.adminZaloStatus(s.token).counts.uncertain,1);const count=s.requests.length;s.advance(610000);s.context.processZaloNotifications_();assert.equal(s.requests.length,count);
+});

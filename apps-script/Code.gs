@@ -216,6 +216,10 @@ function zaloCall_(method,payload) {
   if(code>=200&&code<300&&body.ok===true)return body.result;
   if(body.ok===false){
     var apiCode=Number(body.error_code)||code;
+    if(apiCode===408){
+      if(method==='getUpdates')return null;
+      throw zaloFailure_('Zalo hết thời gian chờ. Chưa xác nhận tin đã được nhận; kiểm tra Zalo trước khi gửi lại.',false,true);
+    }
     var text=apiCode===401?'Token Zalo không còn hợp lệ. Tạo token mới và lưu lại.':apiCode===403?'Bot chưa có quyền gửi tới nơi nhận. Nhắn tin cho bot hoặc kiểm tra Chat ID.':apiCode===429?'Zalo đang giới hạn gửi tin. Hệ thống sẽ thử lại sau.':'Zalo từ chối yêu cầu (mã '+apiCode+'). Kiểm tra token và Chat ID.';
     throw zaloFailure_(text,apiCode===429||code>=500,false);
   }
@@ -223,7 +227,7 @@ function zaloCall_(method,payload) {
 }
 function adminZaloChats(token) {
   auth_(token);
-  var result=zaloCall_('getUpdates',{timeout:1}),updates=Array.isArray(result)?result:result?[result]:[],seen={};
+  var result=zaloCall_('getUpdates',{timeout:5}),updates=Array.isArray(result)?result:result?[result]:[],seen={};
   updates.forEach(function(update){
     if(!update||typeof update!=='object')return;
     var message=update.message||update.edited_message||update,chat=message.chat;
@@ -232,7 +236,7 @@ function adminZaloChats(token) {
     var isGroup=chat.chat_type==='GROUP'||chat.type==='group';
     seen[id]={id:id,name:String(chat.title||chat.name||(isGroup?'Nhóm '+id:chat.username||message.from&&message.from.display_name||'Người nhận '+id)).slice(0,60),type:isGroup?'group':'private'};
   });
-  return {chats:Object.keys(seen).map(function(id){return seen[id];})};
+  return {chats:Object.keys(seen).map(function(id){return seen[id];}),timed_out:result===null};
 }
 function adminZaloTest(token,chatId) {
   auth_(token);var cfg=zaloConfig_();

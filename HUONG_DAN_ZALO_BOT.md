@@ -35,7 +35,7 @@ Người mới thêm chỉ nhận yêu cầu phát sinh sau khi được thêm, 
 
 **Chat ID là mã cuộc trò chuyện, không phải số điện thoại.** Nếu bot dùng webhook hoặc một ứng dụng khác đang đọc tin nhắn, có thể phải nhập Chat ID đã có. Không tự xóa webhook của bot. Với nhóm Zalo, thêm bot vào nhóm theo hướng dẫn Zalo rồi gửi một tin nhắn cho bot trong nhóm để lấy nơi nhận.
 
-Token và danh sách người nhận chỉ lưu trong Script Properties riêng của Apps Script. Website công khai không đọc được danh sách này. Admin không trả lại token đã lưu; để ô token trống khi chỉ thêm/xóa người hoặc bật/tắt thông báo.
+Token và danh sách người nhận chỉ lưu trong Script Properties riêng của Apps Script. Website công khai không đọc được danh sách này. Admin không trả lại token đã lưu; để ô token trống khi chỉ thêm/xóa người hoặc bật/tắt thông báo. Dòng **Đã lưu token** xác nhận có giá trị đã lưu, chưa xác nhận token còn hợp lệ; dùng **Gửi tin thử** và kiểm tra Zalo để xác nhận kết nối.
 
 ## 3. Kiểm tra hoạt động
 
@@ -48,6 +48,7 @@ Tin nhắn gồm mã yêu cầu, tên, số điện thoại, sim đã chọn, gi
 
 ## 4. Khi gửi tin gặp lỗi
 
+- **Lấy nơi nhận hết thời gian chờ (408):** lần đọc tin Zalo chưa lấy được cập nhật trong thời gian chờ. Không kết luận token sai từ mã này. Nhờ người nhận nhắn riêng một tin mới cho bot rồi bấm **Lấy nơi nhận** lại. Nếu hệ thống khác đang đọc tin hoặc dùng webhook, dùng Chat ID đã có; không tự xóa webhook.
 - **Chờ gửi:** lịch gửi xử lý tối đa 5 tin mỗi phút cho toàn bộ danh sách. Ví dụ một yêu cầu gửi cho 20 người cần ít nhất 4 lượt nếu không có hàng đợi khác. Lỗi giới hạn gửi đã được Zalo xác nhận sẽ thử lại sau 1, 2, 4 phút, tối đa 4 lần.
 - **Gửi lỗi:** kiểm tra token, quyền bot và Chat ID của người đó. Sửa kết nối rồi bấm **Gửi lại thông báo** ở đúng dòng. Chỉ người bị lỗi được gửi lại; người đã nhận thành công không nhận thêm. Lỗi một người không chặn người khác.
 - **Chưa xác nhận:** có thể Zalo đã nhận nhưng phản hồi bị mất. Kiểm tra Zalo trước, rồi dùng **Gửi lại sau khi kiểm tra** nếu cần. Lần gửi lại thủ công có thể tạo thêm tin nếu lần trước đã được nhận.
