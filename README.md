@@ -7,7 +7,7 @@ Website bán sim số đẹp (GitHub Pages + Google Apps Script/Sheets).
 |---|---|
 | `index.html`, `kho-sim/`, `sim-phong-thuy/`, `lien-he/`, `chinh-sach/`, `sim/`, `404.html` | HTML tĩnh **được tạo tự động** bằng `_build/prerender.cjs` (đừng sửa tay) |
 | `app.js` | Toàn bộ giao diện + kết nối Google Sheets. Thông tin cửa hàng nằm ở `STORE_CONFIG` đầu tệp |
-| `styles.css` | Giao diện |
+| `styles.css` | Giao diện (phông chữ: Bricolage Grotesque cho tiêu đề và số, Be Vietnam Pro cho nội dung; màu đỏ Viettel `--red`, nền tối `--wine`) |
 | `admin.html` | Trang quản trị (không index) |
 | `_build/shell.html` | Khung `<head>` (meta, font, icon sprite). Sửa meta mặc định ở đây |
 | `sitemap.xml`, `robots.txt` | SEO |
