@@ -75,17 +75,19 @@ let config={...window.STORE_CONFIG}, settingsLoading=true, connectionNotice='', 
 const simModels=new Map(), pageModels=new Map(), inFlight=new Map(), requestKeys=new WeakMap();
 let settingsPromise, activeState;
 let favorites = [];
-try { favorites = JSON.parse(localStorage.getItem('favorites') || '[]'); if (!Array.isArray(favorites)) favorites=[]; } catch {}
+try { favorites = JSON.parse(localStorage.getItem('favorites') || '[]'); if (!Array.isArray(favorites)) favorites=[];else favorites=[...new Set(favorites.filter(id=>Number.isSafeInteger(id)&&id>0))]; } catch {}
 const randomKey=()=>crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join('');
 let toastTimer;
 function toast(message) { const t=document.getElementById('toast'); t.textContent=message; t.classList.add('visible'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('visible'),6000); }
 const ic=(n,c='')=>`<svg class="ic ${c}" aria-hidden="true" focusable="false"><use href="#i-${n}"/></svg>`;
 const SITE='https://simdep68.vn';
-const ROUTES=['/kho-sim','/sim-phong-thuy','/lien-he','/chinh-sach'];
-const normPath=p=>(String(p).replace(/index\.html$/,'').replace(/\/+$/,''))||'/';
+const BASE_PATH=new URL(document.currentScript?.src||SITE+'/app.js').pathname.replace(/\/app\.js$/,'');
+const ROUTES=['/kho-sim','/sim-phong-thuy','/lien-he','/chinh-sach','/yeu-thich'];
+const normPath=p=>{let value=String(p);if(BASE_PATH&&(value===BASE_PATH||value.startsWith(BASE_PATH+'/')))value=value.slice(BASE_PATH.length);return value.replace(/index\.html$/,'').replace(/\.html$/,'').replace(/\/+$/,'')||'/';};
 function routePath(){const p=normPath(location.pathname);if(p==='/sim'){const id=new URLSearchParams(location.search).get('id');return /^\d+$/.test(id||'')?'/sim/'+id:'/sim';}return p;}
-const routeSearch=()=>routePath().startsWith('/sim')?'':location.search;
-function toHref(url){const [path,...q]=String(url).split('?');const m=path.match(/^\/sim\/(\d+)\/?$/);if(m)return '/sim/?id='+m[1];const clean=path==='/'?'/':path.replace(/\/+$/,'')+'/';return clean+(q.length?'?'+q.join('?'):'');}
+const routeSearch=()=>/^\/sim(?:\/|$)/.test(routePath())?'':location.search;
+function toHref(url){const [path,...q]=String(url).split('?'),clean=normPath(path),m=clean.match(/^\/sim\/(\d+)$/);if(m)return BASE_PATH+'/sim.html?id='+m[1];return BASE_PATH+(clean==='/'?'/':clean+'.html')+(q.length?'?'+q.join('?'):'');}
+const siteHref=url=>SITE+toHref(url).slice(BASE_PATH.length);
 function internalFrom(u){const p=normPath(u.pathname);if(p==='/sim'){const id=u.searchParams.get('id');return /^\d+$/.test(id||'')?'/sim/'+id:null;}return p==='/'||ROUTES.includes(p)?p+u.search:null;}
 async function api(path,data) {
   if(!SheetsClient.configured()) {
@@ -113,57 +115,47 @@ function fixStaticLinks(root=app) {
 const link=(url,text,cls='')=>`<a class="${cls}" href="${toHref(url)}"${cls.split(' ').includes('active')?' aria-current="page"':''}>${text}</a>`;
 function branchesSelect(name='branch',value='cs1') {return `<label>Cơ sở hỗ trợ<select name="${name}">${config.branches.map(b=>`<option value="${esc(b.id)}" ${value===b.id?'selected':''}>${esc(b.name)} — ${esc(b.address)}</option>`).join('')}</select></label>`;}
 const phoneHref=()=>`tel:${digits(config.phone)}`;
-function header() { const path=routePath(); return `<a class="skip" href="#main">Bỏ qua điều hướng</a><header class="site-header"><div class="container nav"><a class="brand" href="/" aria-label="${esc(config.name)} - Trang chủ"><svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#e4002b"/><path d="M9.5 12h6.2l4.3 11.2L24.3 12h6.2L22.9 30h-5.8z" fill="#fff"/></svg><span><strong>${esc(config.name)}</strong><small>${esc(config.tagline)}</small></span></a><nav id="main-nav" aria-label="Menu chính">${[['/','Trang chủ'],['/kho-sim','Sim số đẹp'],['/sim-phong-thuy','Sim phong thủy'],['/lien-he','Liên hệ']].map(([p,t])=>link(p,t,path===p||(p==='/kho-sim'&&path.startsWith('/sim/'))?'active':'')).join('')}</nav><a class="hotline" href="${phoneHref()}" aria-label="Gọi hotline ${esc(config.phone)}">${ic('phone')}<span><small>Hotline tư vấn</small><b>${esc(config.phone)}</b></span></a><button type="button" class="menu-toggle outline" aria-label="Mở menu" aria-expanded="false" aria-controls="main-nav">${ic('menu')}</button></div></header>`; }
-function searchForm(value='') {return `<form class="search" role="search" action="/kho-sim/" method="get">${ic('search')}<input name="q" type="search" inputmode="numeric" aria-label="Tìm số sim" placeholder="Nhập dãy số: 6868, 999…" maxlength="30" value="${esc(value)}" autocomplete="off"><button>Tìm sim</button></form>`;}
+function header() {const path=routePath();return `<a class="skip" href="#main">Bỏ qua điều hướng</a><header class="site-header"><div class="container nav"><a class="brand" href="${toHref('/')}" aria-label="${esc(config.name)} - Trang chủ"><span class="wordmark">SIM SỐ <b>ĐẸP<svg viewBox="0 0 28 18" aria-hidden="true"><path d="m3 5 5 4 6-7 6 7 5-4-3 11H6Z" fill="currentColor"/></svg></b></span><small>${esc(config.name)} · Kết nối giá trị</small></a><nav id="main-nav" aria-label="Menu chính">${[['/','Trang chủ'],['/kho-sim','Sim số đẹp'],['/sim-phong-thuy','Sim phong thủy'],['/yeu-thich','Sim yêu thích'],['/lien-he','Liên hệ']].map(([p,t])=>link(p,t,path===p||(p==='/kho-sim'&&path.startsWith('/sim/'))?'active':'')).join('')}</nav><a class="hotline" href="${phoneHref()}" aria-label="Gọi hotline ${esc(config.phone)}">${ic('phone')}<span><small>Hotline tư vấn</small><b>${esc(config.phone)}</b></span></a><div class="header-tools"><button type="button" class="icon-button" data-search aria-label="Tìm sim">${ic('search')}</button><a class="icon-button saved-shortcut" href="${toHref('/yeu-thich')}" aria-label="Sim đã lưu">${ic('bag')}<span class="saved-count">${favorites.length}</span></a><button type="button" class="menu-toggle icon-button" aria-label="Mở menu" aria-expanded="false" aria-controls="main-nav">${ic('menu')}</button></div></div></header>`;}
+function searchForm(value='') {return `<form class="search" role="search" action="${toHref('/kho-sim')}" method="get">${ic('search')}<input name="q" type="search" inputmode="numeric" aria-label="Tìm số sim" placeholder="Tìm sim theo số bạn muốn" maxlength="30" value="${esc(value)}" autocomplete="off"><button>Tìm kiếm</button></form>`;}
 const simNumber=n=>{const f=formatted(n);return esc(f.slice(0,-3))+'<em>'+esc(f.slice(-3))+'</em>';};
 const SIM_PATH='M179 100H343L405 162V416a24 24 0 0 1-24 24H179a24 24 0 0 1-24-24V124a24 24 0 0 1 24-24Z';
 const simCardArt=(label='')=>`<path d="${SIM_PATH}" fill="#e4002b"/><path d="${SIM_PATH}" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2"/><rect x="195" y="190" width="120" height="96" rx="14" fill="#f3dfae"/><path d="M195 222h120M195 254h120M243 190v96M267 190v96" stroke="#b58a2e" stroke-width="3" fill="none"/><rect x="243" y="222" width="24" height="32" fill="#e4c880" stroke="#b58a2e" stroke-width="3"/>${label}`;
 const ART_FONT="Bricolage Grotesque,Be Vietnam Pro,Arial,sans-serif";
-function heroArt(){return `<svg viewBox="0 0 560 540" xmlns="http://www.w3.org/2000/svg" focusable="false"><rect width="560" height="540" fill="#2a0710"/><g font-family="${ART_FONT}" font-weight="800" fill="#fff" fill-opacity=".055" letter-spacing="-10"><text x="-24" y="222" font-size="250">6868</text><text x="-36" y="512" font-size="250">999</text></g><g transform="rotate(11 300 280)"><path d="${SIM_PATH}" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2"/></g><g class="sim-front"><g transform="rotate(-8 280 270)">${simCardArt(`<text x="176" y="410" font-size="108" font-weight="800" fill="#fff" font-family="${ART_FONT}" letter-spacing="-5">68</text>`)}</g></g></svg>`;}
 function productArt(f){const head=f.slice(0,-3),tail=f.slice(-3);return `<svg viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="400" height="500" fill="#2a0710"/><text x="-14" y="190" font-size="190" font-weight="800" fill="#fff" fill-opacity=".055" letter-spacing="-10" font-family="${ART_FONT}">${esc(digits(f).slice(-4))}</text><g transform="translate(-20 -8) scale(.86) rotate(-7 280 270)">${simCardArt()}</g><text x="200" y="468" text-anchor="middle" font-size="34" font-weight="800" fill="#fff" letter-spacing="-1" font-family="${ART_FONT}">${esc(head)}<tspan fill="#ff5470">${esc(tail)}</tspan></text></svg>`;}
-function homeHero() {return `<section class="hero" aria-labelledby="hero-title"><div class="container hero-grid"><div class="hero-copy"><h1 id="hero-title">Sim số đẹp Viettel tại Phú Thọ</h1><p class="lede">Chọn số theo dãy số, mức giá hoặc ngũ hành. Cửa hàng gọi lại tư vấn và hướng dẫn đăng ký chính chủ tại 3 cơ sở: thị xã Phú Thọ, Việt Trì và Lâm Thao.</p>${searchForm('')}<div class="quick"><span>Tìm nhanh:</span>${link('/kho-sim?type=Sim%20tứ%20quý','Tứ quý')}${link('/kho-sim?type=Sim%20lộc%20phát','Lộc phát')}${link('/kho-sim?type=Sim%20thần%20tài','Thần tài')}${link('/kho-sim?max_price=5000000','Dưới 5 triệu')}</div></div><div class="hero-art" aria-hidden="true">${heroArt()}</div></div></section>`;}
+function homeHero() {return `<section class="hero home-hero" aria-labelledby="hero-title"><img class="hero-backdrop" src="${esc(config.banner_url||BASE_PATH+'/hero.webp')}" alt="" fetchpriority="high" width="1942" height="809"><div class="container hero-grid"><div class="hero-copy"><h1 id="hero-title">Chọn sim số đẹp<br><span>dễ dàng</span></h1><p class="lede">Tìm sim hợp phong thủy, sim đẹp giá tốt.<br>Cửa hàng gọi tư vấn, hướng dẫn tận tâm.</p></div>${searchForm('')}</div></section>`;}
 function crumbs(items) {return `<nav class="breadcrumb" aria-label="Đường dẫn"><ol>${items.map(([h,t],i)=>`<li>${h&&i<items.length-1?link(h,t):`<span aria-current="page">${t}</span>`}</li>`).join('')}</ol></nav>`;}
 function pageHead(title,sub,items,withSearch=false) {return `<section class="page-head"><div class="container">${crumbs(items)}<h1>${title}</h1>${sub?`<p class="lede">${sub}</p>`:''}${withSearch?searchForm(new URLSearchParams(routeSearch()).get('q')||''):''}</div></section>`;}
-function card(s,detail=true) {const available=s.status==='available',saved=favorites.includes(s.id),f=formatted(s.number);return `<article class="sim-card"><button type="button" class="heart ${saved?'saved':''}" data-save="${s.id}" aria-label="Lưu sim ${esc(f)}" aria-pressed="${saved}">${ic('heart')}</button><a class="sim-top" href="/sim/${s.id}"><div class="tags"><span>${esc(s.type)}</span>${s.element?`<span>Mệnh ${esc(s.element)}</span>`:''}</div><h3 class="sim-number">${simNumber(s.number)}</h3><div class="sim-meta"><b class="price">${money(s.price)}</b><small class="stock ${available?'green':''}">${esc(statuses[s.status]||'')}</small></div></a><div class="card-actions">${detail?link('/sim/'+s.id,'Chi tiết','outline'):''}${available?`<button type="button" class="button purchase" data-buy="${s.id}" aria-label="Mua sim ${esc(f)}">Mua sim</button>`:link('/sim/'+s.id,'Xem sim','outline')}</div></article>`;}
+function card(s,detail=true) {const available=s.status==='available',saved=favorites.includes(s.id),f=formatted(s.number);return `<article class="sim-card"><button type="button" class="heart ${saved?'saved':''}" data-save="${s.id}" aria-label="Lưu sim ${esc(f)}" aria-pressed="${saved}">${ic('heart')}</button><a class="sim-top" href="${toHref('/sim/'+s.id)}"><span class="carrier-logo">viettel</span><h3 class="sim-number">${simNumber(s.number)}</h3><div class="tags"><span>${esc(String(s.type||'Sim số đẹp').replace(/^Sim /,''))}</span>${s.element?`<span>Mệnh ${esc(s.element)}</span>`:''}</div><div class="sim-meta"><b class="price">${money(s.price)}</b>${available?'':`<small class="stock">${esc(statuses[s.status]||'')}</small>`}</div></a><div class="card-actions ${detail?'':'single'}">${detail?link('/sim/'+s.id,'Xem chi tiết','outline'):''}${available?`<button type="button" class="button purchase" data-buy="${s.id}" aria-label="Mua sim ${esc(f)}">Mua ngay</button>`:link('/sim/'+s.id,'Xem sim','outline')}</div></article>`;}
 function empty() {return `<div class="empty"><h3>Chưa có sim phù hợp</h3><p>Thử thay đổi bộ lọc hoặc liên hệ để được tìm số theo yêu cầu.</p>${link('/lien-he','Nhờ tư vấn chọn sim','outline')}</div>`;}
-function guarantees() {return `<section class="guarantees" aria-label="Cam kết của cửa hàng">${[['shield','Đăng ký chính chủ','Hướng dẫn theo quy định'],['headset','Gọi lại tư vấn','Theo yêu cầu của bạn'],['truck','Giao sim tận nơi','Xác nhận với cửa hàng'],['pin','3 cơ sở','Phú Thọ, Việt Trì, Lâm Thao']].map(([i,t,d])=>`<div><i>${ic(i)}</i><span><b>${esc(t)}</b><small>${esc(d)}</small></span></div>`).join('')}</section>`;}
-function footer() {return `<footer class="site-footer"><div class="container footer-grid"><div><strong>${esc(config.name)}</strong><p>${esc(config.tagline)}</p><a class="f-phone" href="${phoneHref()}">${ic('phone')}${esc(config.phone)}</a><p><a href="mailto:${esc(config.email)}">${esc(config.email)}</a></p><p>${esc(config.hours||'Liên hệ để xác nhận giờ mở cửa')}</p></div><div><p class="f-title">Cơ sở tại Phú Thọ</p><ul>${config.branches.map(b=>`<li><b>${esc(b.name)}</b><br>${esc(b.address)}</li>`).join('')}</ul></div><div><p class="f-title">Danh mục sim</p><ul><li>${link('/kho-sim','Sim số đẹp')}</li><li>${link('/sim-phong-thuy','Sim phong thủy')}</li><li>${link('/kho-sim?type=Sim%20tứ%20quý','Sim tứ quý')}</li><li>${link('/kho-sim?type=Sim%20lộc%20phát','Sim lộc phát')}</li><li>${link('/kho-sim?type=Sim%20thần%20tài','Sim thần tài')}</li></ul></div><div><p class="f-title">Hỗ trợ khách hàng</p><ul><li>${link('/lien-he','Liên hệ & bản đồ')}</li><li>${link('/chinh-sach','Chính sách cửa hàng')}</li>${config.zalo_url?`<li><a href="${esc(config.zalo_url)}" target="_blank" rel="noopener">Nhắn Zalo cửa hàng</a></li>`:''}</ul></div></div><div class="container footer-bottom"><span>© ${new Date().getFullYear()} ${esc(config.name)}. Giá và tình trạng sim do cửa hàng cập nhật.</span><span>Sim Viettel tại Phú Thọ, Việt Trì, Lâm Thao</span></div></footer><nav class="mobile-actions" aria-label="Thao tác nhanh">${link('/kho-sim',ic('search')+'<span>Kho sim</span>')}${link('/sim-phong-thuy',ic('compass')+'<span>Phong thủy</span>')}<a class="call" href="${phoneHref()}">${ic('phone')}<span>Gọi tư vấn</span></a>${config.zalo_url?`<a href="${esc(config.zalo_url)}" target="_blank" rel="noopener"><b class="ic" style="font-size:20px;line-height:1.1;text-align:center">Z</b><span>Zalo</span></a>`:link('/lien-he',ic('mail')+'<span>Liên hệ</span>')}</nav>`;}
-function consultCard() {return `<aside class="consult-card" aria-labelledby="consult-card-title"><h3 id="consult-card-title">Cần tư vấn chọn sim?</h3><ul><li>${ic('check')}Chọn số phù hợp nhu cầu và ngân sách</li><li>${ic('check')}Hướng dẫn thủ tục đăng ký chính chủ</li><li>${ic('check')}Hỗ trợ tại 3 cơ sở, gọi lại theo yêu cầu</li></ul><a class="button" href="${phoneHref()}">${ic('phone')}Gọi ${esc(config.phone)}</a>${link('/lien-he','Gửi yêu cầu tư vấn','outline')}</aside>`;}
-function branchesSection() {return `<section aria-labelledby="branch-title"><div class="section-head"><h2 id="branch-title">3 cơ sở tại Phú Thọ</h2>${link('/lien-he','Thông tin liên hệ')}</div><div class="branch-grid">${config.branches.map(b=>`<article class="branch"><h3>${ic('pin')}${esc(b.name)}</h3><p>${esc(b.address)}</p><a class="outline" href="${esc(mapLink(b))}" target="_blank" rel="noopener">Chỉ đường${ic('external')}</a></article>`).join('')}</div></section>`;}
-function buyingSteps() {
-  return `<section aria-labelledby="buying-title">
-    <div class="section-head"><h2 id="buying-title">Mua sim trong 3 bước</h2></div>
-    <ol class="step-cards">${[
-      ['1','Chọn sim bạn thích','Tìm theo số, mức giá hoặc cơ sở. Bấm Mua sim để mở biểu mẫu.'],
-      ['2','Để lại thông tin','Điền tên, số điện thoại và giờ tiện nghe máy. Gửi yêu cầu gọi lại.'],
-      ['3','Cửa hàng gọi tư vấn','Nhân viên xác nhận sim, giá, thủ tục và cách nhận sim trực tiếp với bạn.']
-    ].map(([n,title,text])=>`<li class="step-card"><span class="step-number" aria-hidden="true">${n}</span><div><h3>${title}</h3><p>${text}</p></div></li>`).join('')}</ol>
-    <p class="section-note">Gửi yêu cầu chưa giữ chỗ cho sim. Cửa hàng xác nhận tình trạng khi liên hệ với bạn.</p>
-  </section>`;
+function footer() {return `<footer class="site-footer"><details class="footer-disclosure"><summary>${esc(config.name)} · Thông tin cửa hàng${ic('chev')}</summary><div class="container footer-grid"><div><strong>${esc(config.name)}</strong><p>${esc(config.tagline)}</p><a class="f-phone" href="${phoneHref()}">${ic('phone')}${esc(config.phone)}</a><p><a href="mailto:${esc(config.email)}">${esc(config.email)}</a></p><p>${esc(config.hours||'Liên hệ để xác nhận giờ mở cửa')}</p></div><div><p class="f-title">Cơ sở tại Phú Thọ</p><ul>${config.branches.map(b=>`<li><b>${esc(b.name)}</b><br>${esc(b.address)}</li>`).join('')}</ul></div><div><p class="f-title">Danh mục sim</p><ul><li>${link('/kho-sim','Sim số đẹp')}</li><li>${link('/sim-phong-thuy','Sim phong thủy')}</li><li>${link('/kho-sim?type=Sim%20tứ%20quý','Sim tứ quý')}</li><li>${link('/kho-sim?type=Sim%20lộc%20phát','Sim lộc phát')}</li><li>${link('/kho-sim?type=Sim%20thần%20tài','Sim thần tài')}</li></ul></div><div><p class="f-title">Hỗ trợ khách hàng</p><ul><li>${link('/lien-he','Liên hệ & bản đồ')}</li><li>${link('/chinh-sach','Chính sách cửa hàng')}</li>${config.zalo_url?`<li><a href="${esc(config.zalo_url)}" target="_blank" rel="noopener">Nhắn Zalo cửa hàng</a></li>`:''}</ul></div></div><div class="container footer-bottom"><span>© ${new Date().getFullYear()} ${esc(config.name)}. Giá và tình trạng sim do cửa hàng cập nhật.</span><span>Sim Viettel tại Phú Thọ, Việt Trì, Lâm Thao</span></div></details></footer>${mobileNav()}`;}
+function mobileNav(){const path=routePath();return `<nav class="mobile-actions" aria-label="Thao tác nhanh">${link('/',ic('home')+'<span>Trang chủ</span>',path==='/'?'active':'')}${link('/kho-sim',ic('grid')+'<span>Danh mục</span>',path==='/kho-sim'?'active':'')}<button type="button" class="mobile-search" data-search><i>${ic('search')}</i><span>Tìm sim</span></button>${link('/yeu-thich',ic('heart')+'<span>Yêu thích</span>',path==='/yeu-thich'?'active':'')}${link('/lien-he',ic('user')+'<span>Liên hệ</span>',path==='/lien-he'?'active':'')}</nav>`;}
+function categoryIcon(kind){
+ const art={
+ coin:'<defs><linearGradient id="category-gold" x2="1" y2="1"><stop stop-color="#ffd064"/><stop offset="1" stop-color="#d79010"/></linearGradient></defs><path d="m8 3 4 1 4-1-2 5c8 5 7 13-2 13S2 13 10 8Z" fill="url(#category-gold)" stroke="none"/><path d="M9 8h6" stroke="#fff3bc" stroke-width="1.2"/><text x="9" y="17" fill="white" stroke="none" font-size="10" font-weight="700" font-family="Arial">$</text>',
+ trend:'<path d="M3 14h4v7H3Zm6-4h4v11H9Zm6-4h4v15h-4Z" fill="#ff846b" stroke="none"/><path d="m3 10 6-5 4 2 7-5m-4 0h4v4" fill="none" stroke="#ff6f59" stroke-width="2"/>',
+ diamond:'<path d="m2 8 5-6h10l5 6-10 14Z" fill="#0794ed" stroke="none"/><path d="M2 8h20L12 22 7 2Z" fill="#48c5ff" stroke="white" stroke-width=".7"/><path d="m7 2 5 20 5-20Z" fill="#0070d9" stroke="#bcecff" stroke-width=".7"/>',
+ tag:'<path d="M2 14 14 2h8v8L10 22Z" fill="#16ad89" stroke="none"/><circle cx="17" cy="7" r="1.5" fill="white" stroke="none"/><path d="m8 15 4-4m-3 1 2 2" stroke="white" stroke-width="1.5"/>',
+ card:'<rect x="2" y="3" width="20" height="18" rx="3" fill="#ff718e" stroke="none"/><path d="M2 8h20M6 15h5" stroke="white" stroke-width="2"/>'};
+ if(kind==='888')return '<span class="category-888" aria-hidden="true">888</span>';
+ return art[kind]?'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+art[kind]+'</svg>':ic(kind);
 }
-function ctaBand() {return `<section class="cta-band" aria-labelledby="cta-title"><div class="container"><div class="cta-main"><div><h2 id="cta-title">Chưa thấy số ưng ý? Để cửa hàng tìm giúp bạn.</h2><p>Cho nhân viên biết dãy số và ngân sách bạn quan tâm. Cửa hàng gọi lại tư vấn, hướng dẫn đăng ký chính chủ tại 3 cơ sở ở Phú Thọ.</p></div><div class="cta-actions"><a class="button" href="${phoneHref()}">${ic('phone')}${esc(config.phone)}</a>${link('/lien-he','Gửi yêu cầu tư vấn','outline')}</div></div>${guarantees()}</div></section>`;}
-const ELEMENT_DOTS=['#b8891f','#13814b','#1376bd','#e4002b','#8a5a2b'];
+function homeFilters(){return `<section class="home-filter" aria-labelledby="home-filter-title"><h2 id="home-filter-title">${ic('funnel')}Lọc sim theo nhu cầu</h2><form class="home-filters">${select('carrier','Nhà mạng',[['viettel','Viettel']])}${select('max_price','Khoảng giá',[[1000000,'Dưới 1 triệu'],[5000000,'Dưới 5 triệu'],[10000000,'Dưới 10 triệu'],[50000000,'Dưới 50 triệu']])}${select('prefix','Đầu số',['086','096','097','098','032','033','034','035','036','037','038','039'].map(v=>[v,v]))}${select('type','Dạng sim',[...new Set([...catalogTypes,'Sim thần tài','Sim lộc phát','Sim tam hoa','Sim tứ quý'])].map(v=>[v,v.replace(/^Sim /,'')]))}<button type="submit" class="home-filter-submit">Lọc sim</button></form></section>`;}
+function homeSkeleton(){return `<p class="sr-only" role="status">Đang cập nhật sim từ cửa hàng…</p>${Array.from({length:4},()=>'<article class="sim-card skeleton" aria-hidden="true"><div class="skeleton-logo"></div><div class="skeleton-number"></div><div class="skeleton-tags"></div><div class="skeleton-price"></div><div class="skeleton-actions"></div></article>').join('')}`;}
+function homeBenefits(){return `<section class="home-benefits" aria-label="Dịch vụ cửa hàng">${[['database','Kho sim đa dạng','Chọn số phù hợp'],['shield','Đăng ký chính chủ','Hướng dẫn tận tâm'],['headset','Tư vấn nhanh','Gọi lại theo yêu cầu'],['support','3 cơ sở Phú Thọ','Đồng hành cùng bạn']].map(([icon,title,text])=>`<div><i>${ic(icon)}</i><span><b>${title}</b><small>${text}</small></span></div>`).join('')}</section>`;}
+function feedbackSection(){const feedbackUrl=config.zalo_url||'mailto:'+config.email;return `<section class="feedback-section" aria-labelledby="feedback-title"><div class="section-head"><h2 id="feedback-title"><span class="section-icon gold" aria-hidden="true">★</span>Khách hàng nói về chúng tôi</h2><a href="${esc(feedbackUrl)}"${config.zalo_url?' target="_blank" rel="noopener"':''}>Gửi đánh giá${ic('chev')}</a></div><div class="feedback-grid"><article class="feedback-card"><div class="feedback-person"><i>${ic('user')}</i><div><h3>Chia sẻ trải nghiệm của bạn</h3><small>${esc(config.name)}</small></div></div><p>Bạn đã tìm được sim ưng ý? Hãy chia sẻ để cửa hàng phục vụ bạn tốt hơn.</p><a class="text-link" href="${esc(feedbackUrl)}"${config.zalo_url?' target="_blank" rel="noopener"':''}>Gửi lời nhận xét${ic('chev')}</a></article><article class="feedback-card"><div class="feedback-person"><i>${ic('headset')}</i><div><h3>Luôn sẵn sàng lắng nghe</h3><small>Đồng hành cùng khách hàng</small></div></div><p>Cần hỗ trợ chọn sim hoặc đăng ký chính chủ? Liên hệ nhân viên tại 3 cơ sở.</p>${link('/lien-he','Liên hệ cửa hàng'+ic('chev'),'text-link')}</article></div></section>`;}
 function home(data=null) {
-  return `${homeHero()}
-  <main id="main" class="container page-sections">
-    <section aria-labelledby="cat-title"><div class="section-head"><h2 id="cat-title">Chọn sim theo nhu cầu</h2></div><div class="categories">${[
-      ['88<b>88</b>','Sim số đẹp','Dễ nhớ, khẳng định giá trị','/kho-sim'],
-      [ELEMENT_DOTS.map(c=>`<i style="background:${c}"></i>`).join(''),'Sim phong thủy','Chọn theo ngũ hành để tham khảo','/sim-phong-thuy'],
-      ['39<b>79</b>','Sim thần tài','Tìm số theo ý nghĩa bạn thích','/kho-sim?type=Sim%20thần%20tài'],
-      ['68<b>68</b>','Sim lộc phát','Khám phá các dãy số 68, 86','/kho-sim?type=Sim%20lộc%20phát']
-    ].map(([art,t,d,p])=>`<a href="${toHref(p)}"><span class="cat-digits${art.startsWith('<i')?' cat-elements':''}" aria-hidden="true">${art}</span><div><h3>${t}</h3><small>${d}</small></div>${ic('chev','chev')}</a>`).join('')}</div></section>
-    <div class="home-columns">
-      <section aria-labelledby="stock-title"><div class="section-head"><h2 id="stock-title">Sim số đẹp đang có</h2>${link('/kho-sim','Xem tất cả')}</div>
-        <div class="sim-grid home-grid">${data?data.items.map(s=>card(s,false)).join('')||empty():inventoryLoading()}</div>
-      </section>
-      ${consultCard()}
-    </div>
-    ${buyingSteps()}
-    ${branchesSection()}
-  </main>
-  ${ctaBand()}
-  <div class="container seo-block"><section class="seo-copy"><h2>Sim Viettel số đẹp tại Phú Thọ</h2><p>${esc(config.name)} có kho sim Viettel số đẹp và sim phong thủy tại thị xã Phú Thọ, Việt Trì và Lâm Thao. Bạn có thể tìm theo dãy số, đầu số, mức giá hoặc ngũ hành, rồi để lại thông tin để nhân viên gọi lại tư vấn.</p><p>Giá và tình trạng sim được cập nhật từ cửa hàng. Gửi yêu cầu chưa giữ chỗ cho sim; nhân viên xác nhận sim, giá, thủ tục đăng ký chính chủ và cách nhận sim khi liên hệ với bạn.</p></section></div>`;
+ return `${homeHero()}<main id="main" class="container home-main">
+  <section class="home-categories" aria-label="Chọn sim theo nhu cầu">${[
+   ['coin','Sim<br>Thần Tài','/kho-sim?type=Sim%20thần%20tài','gold'],['trend','Sim<br>Lộc Phát','/kho-sim?type=Sim%20lộc%20phát','coral'],['888','Sim<br>Tam Hoa','/kho-sim?type=Sim%20tam%20hoa','purple'],['diamond','Sim<br>Tứ Quý','/kho-sim?type=Sim%20tứ%20quý','blue'],['tag','Sim<br>Giá Tốt','/kho-sim?max_price=5000000','green'],['card','Tư Vấn<br>Chọn Sim','/lien-he','pink']
+  ].map(([icon,title,url,color])=>link(url,`<i>${categoryIcon(icon)}</i><span>${title}</span>`,'home-category '+color)).join('')}</section>
+  <section class="home-featured" aria-labelledby="stock-title"><div class="section-head"><h2 id="stock-title"><span class="section-icon" aria-hidden="true">🔥</span>Sim số đẹp nổi bật</h2>${link('/kho-sim','Xem tất cả'+ic('chev'))}</div><div class="sim-grid home-grid">${data?data.items.map(sim=>card(sim)).join('')||empty():homeSkeleton()}</div></section>
+  ${homeFilters()}
+  <section class="home-promo" aria-labelledby="promo-title"><img src="${BASE_PATH}/promo.webp" alt="" loading="lazy" width="1942" height="432"><div><h2 id="promo-title">SIM ĐẸP GIÁ TỐT<br><span>TƯ VẤN CHỌN SIM</span></h2><p>Chọn số theo nhu cầu.<br>Gọi lại tư vấn tận tâm.</p>${link('/lien-he','Tìm hiểu ngay'+ic('chev'),'promo-button')}</div></section>
+  ${homeBenefits()}${feedbackSection()}
+  <section class="home-store-note"><p>${esc(config.name)} · ${config.branches.length} cơ sở tại Phú Thọ</p><a href="${phoneHref()}">${ic('phone')}${esc(config.phone)}</a></section>
+ </main>`;
 }
+function favoritesPage(data=null){return `<main id="main" class="container page-sections favorites-page"><div class="section-head"><h1>Sim yêu thích</h1>${link('/kho-sim','Xem kho sim','text-link')}</div><p>Sim bạn lưu trên thiết bị này. Giá và tình trạng được cập nhật lại từ cửa hàng.</p><div class="sim-grid">${data?data.items.map(sim=>card(sim)).join('')||'<section class="empty"><h2>Bạn chưa lưu sim nào</h2><p>Bấm biểu tượng trái tim trên thẻ sim để xem lại tại đây.</p>'+link('/kho-sim','Khám phá kho sim','button')+'</section>':inventoryLoading()}</div></main>`;}
 function select(name,label,options,value='') {return `<label>${label}<select name="${name}"><option value="">Tất cả</option>${options.map(([v,t])=>`<option value="${esc(v)}" ${value===String(v)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;}
 function filters(params,feng=false) {return `<form class="filter-row filters"><label class="filter-query">Số cần tìm<input name="q" type="search" inputmode="numeric" placeholder="Ví dụ: 999" value="${esc(params.get('q')||'')}"></label>${select('prefix','Đầu số',['086','096','097','098','032','033','034','035','036','037','038','039'].map(v=>[v,v]),params.get('prefix'))}${select('type','Loại sim',catalogTypes.map(v=>[v,v]),params.get('type'))}${select('max_price','Giá tối đa',[[1000000,'1 triệu'],[5000000,'5 triệu'],[10000000,'10 triệu'],[50000000,'50 triệu']],params.get('max_price'))}${feng?select('element','Ngũ hành',['Kim','Mộc','Thủy','Hỏa','Thổ'].map(v=>[v,v]),params.get('element')):select('branch','Cơ sở',config.branches.map(b=>[b.id,b.name]),params.get('branch'))}${select('status','Tình trạng',[['available','Còn hàng'],['reserved','Đang giữ chỗ'],['sold','Đã bán']],params.get('status'))}${select('sort','Sắp xếp',[['asc','Giá tăng dần'],['desc','Giá giảm dần']],params.get('sort'))}<div class="filter-buttons"><button>Lọc sim</button><a class="outline" href="${feng?'/sim-phong-thuy':'/kho-sim'}">Xóa bộ lọc</a></div></form>`;}
 function pager(data,base,params) {const pages=Math.ceil(data.total/data.size);if(pages<2)return '';const pageLink=n=>{const p=new URLSearchParams(params);p.set('page',n);return base+'?'+p};return `<nav class="pagination" aria-label="Phân trang">${data.page>1?link(pageLink(data.page-1),'← Trước','outline'):''}<span>Trang ${data.page} / ${pages}</span>${data.page<pages?link(pageLink(data.page+1),'Tiếp →','outline'):''}</nav>`;}
@@ -238,6 +230,7 @@ function pageContent(state) {
   if(state.path==='/sim-phong-thuy')return catalog(true,state.data);
   if(state.path==='/lien-he')return contact();
   if(state.path==='/chinh-sach')return policies();
+  if(state.path==='/yeu-thich')return favoritesPage(state.data);
   if(state.path.startsWith('/sim/'))return detail(state.data,state.related);
   if(state.path==='/')return home(state.data);
   return notFound();
@@ -253,26 +246,28 @@ function seoFor(state) {
     '/kho-sim':['Kho sim số đẹp Viettel | '+n,'Kho sim Viettel số đẹp cập nhật từ cửa hàng tại Phú Thọ. Lọc theo đầu số, loại sim, mức giá và cơ sở; gửi yêu cầu để nhân viên gọi tư vấn.'],
     '/sim-phong-thuy':['Sim phong thủy Viettel theo ngũ hành | '+n,'Chọn sim Viettel theo ngũ hành Kim, Mộc, Thủy, Hỏa, Thổ để tham khảo. Cửa hàng tại Phú Thọ tư vấn chọn số phù hợp nhu cầu.'],
     '/lien-he':['Liên hệ và địa chỉ 3 cơ sở | '+n,'Hotline '+config.phone+'. Địa chỉ 3 cơ sở tại Phú Thọ, Việt Trì và Lâm Thao. Gửi yêu cầu để được gọi lại tư vấn chọn sim.'],
+    '/yeu-thich':['Sim yêu thích | '+n,'Các số sim bạn đã lưu trên thiết bị để xem lại và nhờ cửa hàng tư vấn.'],
     '/chinh-sach':['Chính sách cửa hàng | '+n,'Chính sách gửi yêu cầu mua sim, hỗ trợ đăng ký chính chủ và sử dụng thông tin khách hàng của '+n+'.']
   };
   if(p.startsWith('/sim/')){
-    const s=state.data,canonical=SITE+'/sim/?id='+p.split('/')[2];
+    const s=state.data,canonical=SITE+'/sim.html?id='+p.split('/')[2];
     if(!s)return {t:'Thông tin sim | '+n,d:'Thông tin sim Viettel tại '+n+'. Gọi '+config.phone+' để được tư vấn.',canonical,robots:'index,follow'};
     const f=formatted(s.number);
     return {t:'Sim '+f+' - '+money(s.price)+' | '+n,d:'Sim Viettel '+f+', '+s.type+(s.element?', mệnh '+s.element:'')+'. Giá '+money(s.price)+', '+String(statuses[s.status]||'').toLowerCase()+'. Gọi '+config.phone+' để được tư vấn và hướng dẫn đăng ký chính chủ.',canonical,robots:'index,follow'};
   }
   if(!pages[p])return {t:'Không tìm thấy trang | '+n,d:'Trang không tồn tại.',canonical:'',robots:'noindex,follow'};
-  let [t,d]=pages[p],canonical=SITE+toHref(p),robots='index,follow';
+  let [t,d]=pages[p],canonical=siteHref(p),robots='index,follow';
   const keys=[...params.keys()];
-  if(keys.length===1&&keys[0]==='type'&&params.get('type')){const ty=params.get('type');t=ty+' Viettel Phú Thọ | '+n;d='Xem '+ty.toLowerCase()+' Viettel tại '+n+'. Giá và tình trạng cập nhật từ cửa hàng; gọi '+config.phone+' để được tư vấn.';canonical=SITE+toHref(p+'?type='+encodeURIComponent(ty));}
-  else if(keys.length===1&&keys[0]==='page'&&Number(params.get('page'))>1){canonical=SITE+toHref(p+'?page='+Number(params.get('page')));t=t.replace(' | ',' - trang '+Number(params.get('page'))+' | ');}
+  if(p==='/yeu-thich')robots='noindex,follow';
+  if(keys.length===1&&keys[0]==='type'&&params.get('type')){const ty=params.get('type');t=ty+' Viettel Phú Thọ | '+n;d='Xem '+ty.toLowerCase()+' Viettel tại '+n+'. Giá và tình trạng cập nhật từ cửa hàng; gọi '+config.phone+' để được tư vấn.';canonical=siteHref(p+'?type='+encodeURIComponent(ty));}
+  else if(keys.length===1&&keys[0]==='page'&&Number(params.get('page'))>1){canonical=siteHref(p+'?page='+Number(params.get('page')));t=t.replace(' | ',' - trang '+Number(params.get('page'))+' | ');}
   else if(keys.length)robots='noindex,follow';
   return {t,d,canonical,robots};
 }
 const phoneIntl=()=>'+84'+digits(config.phone).replace(/^0/,'');
 const storesLd=()=>config.branches.map(b=>({'@context':'https://schema.org','@type':'Store','@id':SITE+'/#'+b.id,'name':config.name+' - '+b.name,'url':SITE+'/','telephone':phoneIntl(),'email':config.email,'areaServed':'Phú Thọ','address':{'@type':'PostalAddress','streetAddress':b.address,'addressRegion':'Phú Thọ','addressCountry':'VN'}}));
-const websiteLd=()=>({'@context':'https://schema.org','@type':'WebSite','@id':SITE+'/#website','url':SITE+'/','name':config.name,'inLanguage':'vi-VN','potentialAction':{'@type':'SearchAction','target':{'@type':'EntryPoint','urlTemplate':SITE+'/kho-sim/?q={search_term_string}'},'query-input':'required name=search_term_string'}});
-const crumbLd=items=>({'@context':'https://schema.org','@type':'BreadcrumbList','itemListElement':items.map(([name,path],i)=>({'@type':'ListItem','position':i+1,'name':name,...(path?{'item':SITE+toHref(path)}:{})}))});
+const websiteLd=()=>({'@context':'https://schema.org','@type':'WebSite','@id':SITE+'/#website','url':SITE+'/','name':config.name,'inLanguage':'vi-VN','potentialAction':{'@type':'SearchAction','target':{'@type':'EntryPoint','urlTemplate':SITE+'/kho-sim.html?q={search_term_string}'},'query-input':'required name=search_term_string'}});
+const crumbLd=items=>({'@context':'https://schema.org','@type':'BreadcrumbList','itemListElement':items.map(([name,path],i)=>({'@type':'ListItem','position':i+1,'name':name,...(path?{'item':siteHref(path)}:{})}))});
 function ldFor(state) {
   const p=state.path;
   if(p==='/')return [websiteLd(),...storesLd()];
@@ -281,7 +276,7 @@ function ldFor(state) {
   if(p==='/sim-phong-thuy')return [crumbLd([['Trang chủ','/'],['Sim phong thủy',null]])];
   if(p==='/chinh-sach')return [crumbLd([['Trang chủ','/'],['Chính sách',null]])];
   if(p.startsWith('/sim/')&&state.data){
-    const s=state.data,f=formatted(s.number),url=SITE+'/sim/?id='+s.id,stock={available:'https://schema.org/InStock'}[s.status]||'https://schema.org/OutOfStock';
+    const s=state.data,f=formatted(s.number),url=SITE+'/sim.html?id='+s.id,stock={available:'https://schema.org/InStock'}[s.status]||'https://schema.org/OutOfStock';
     return [{'@context':'https://schema.org','@type':'Product','name':'Sim Viettel '+f,'description':'Sim Viettel '+f+', '+s.type+(s.element?', mệnh '+s.element:'')+'.','image':SITE+'/og-image.png','brand':{'@type':'Brand','name':'Viettel'},'category':s.type,'url':url,'offers':{'@type':'Offer','url':url,'price':String(s.price),'priceCurrency':'VND','availability':stock,'seller':{'@type':'Organization','name':config.name}}},crumbLd([['Trang chủ','/'],['Kho sim','/kho-sim'],[f,null]])];
   }
   return [];
@@ -295,19 +290,21 @@ function applySeo(state) {
 function paint(state,preserve=true) {
   if(activeState!==state)return;
   const kept=[];
-  if(preserve)app.querySelectorAll('form.request-form[data-kind],form.search,form.filters').forEach(form=>kept.push(form));
+  if(preserve)app.querySelectorAll('form.request-form[data-kind],form.search,form.filters,form.home-filters').forEach(form=>kept.push(form));
   const focused=document.activeElement;
   const selection=focused&&'selectionStart' in focused?[focused.selectionStart,focused.selectionEnd]:null;
+  const footerOpen=preserve?app.querySelector('.footer-disclosure')?.open:undefined;
   const menuOpen=app.querySelector('.menu-toggle')?.getAttribute('aria-expanded')==='true';
   const filterOpen=app.querySelector('.filters')?.classList.contains('open');
   app.innerHTML=header()+(connectionNotice?`<div class="container notice inventory-error" role="status">${esc(connectionNotice)} <button class="outline" data-retry>Thử lại</button></div>`:'')+(state.error?`<div class="container notice inventory-error" role="alert">${esc(state.error)} <button class="outline" data-retry>Thử lại</button></div>`:'')+pageContent(state)+footer();
   for(const old of kept){
     let replacement;
     if(old.dataset.kind)replacement=app.querySelector(`form[data-kind="${old.dataset.kind}"][data-sim-id="${old.dataset.simId||''}"]`)||(!old.dataset.simId?app.querySelector(`form[data-kind="${old.dataset.kind}"]`):null);
-    else replacement=app.querySelector(old.classList.contains('search')?'form.search':'form.filters');
+    else replacement=app.querySelector(old.classList.contains('search')?'form.search':old.classList.contains('home-filters')?'form.home-filters':'form.filters');
     if(replacement){if(old.classList.contains('filters')){const current=old.querySelector('[name=type]'),fresh=replacement.querySelector('[name=type]');if(current&&fresh){const selected=current.value;current.innerHTML=fresh.innerHTML;current.value=selected;}}replacement.replaceWith(old);}
   }
   fixStaticLinks();bind();updateFormAvailability();
+  if(typeof footerOpen==='boolean')app.querySelector('.footer-disclosure').open=footerOpen;
   if(menuOpen){app.querySelector('.menu-toggle')?.setAttribute('aria-expanded','true');app.querySelector('#main-nav')?.classList.add('open');}
   if(filterOpen){app.querySelector('.filters')?.classList.add('open');app.querySelector('.filter-toggle')?.setAttribute('aria-expanded','true');}
   if(focused?.isConnected){focused.focus({preventScroll:true});if(selection&&typeof focused.setSelectionRange==='function')try{focused.setSelectionRange(...selection);}catch{}}
@@ -328,13 +325,15 @@ async function render(preserve=false) {
   let dataPath;
   if(path==='/kho-sim'||path==='/sim-phong-thuy'){const params=new URLSearchParams(routeSearch());params.set('size',24);dataPath='/api/sims?'+params;tasks.push(api('/api/sim-options').then(result=>{catalogTypes=result.types;if(activeState===state)paint(state);}).catch(()=>{}));}
   else if(/^\/sim\/\d+$/.test(path))dataPath='/api/sims/'+path.split('/')[2];
-  else if(path==='/')dataPath='/api/sims?size=9&status=available';
+  else if(path==='/')dataPath='/api/sims?size=4&status=available';
+  if(path==='/yeu-thich')tasks.push(loadFavorites(state));
   if(dataPath)tasks.push(api(dataPath).then(async data=>{
     remember(data);pageModels.set(key,data);state.data=data;if(activeState===state)paint(state);
     if(path.startsWith('/sim/')){try{state.related=await api('/api/sims?size=4&type='+encodeURIComponent(data.type));remember(state.related);if(activeState===state)paint(state);}catch{state.related={items:[]};if(activeState===state)paint(state);}}
   }).catch(error=>{state.error=error.message;if(!state.data)state.data=path.startsWith('/sim/')?null:{items:[],total:0,page:1,size:24};if(activeState===state)paint(state);}));
   await Promise.allSettled(tasks);if(activeState===state)app.removeAttribute('aria-busy');
 }
+async function loadFavorites(state){const ids=[...favorites],items=[],failures=[];let cursor=0;await Promise.all(Array.from({length:Math.min(4,ids.length)},async()=>{while(cursor<ids.length){const id=ids[cursor++];try{const sim=await api('/api/sims/'+id);remember(sim);items.push(sim);}catch{failures.push(id);}}}));state.data={items:items.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id))};if(failures.length)state.error='Một số sim đã lưu chưa tải được. Bấm Thử lại hoặc liên hệ cửa hàng.';if(activeState===state)paint(state);}
 function updateFormAvailability() {
   document.querySelectorAll('.request-form[data-kind]').forEach(form=>{
     const button=form.querySelector('.buy,button:not([type])');
@@ -377,11 +376,14 @@ function bindRequests(root) {
   });
 }
 function bind() {
+  const footerDisclosure=app.querySelector('.footer-disclosure');if(footerDisclosure)footerDisclosure.open=matchMedia('(min-width:821px)').matches;
   const menu=document.querySelector('.menu-toggle');if(menu)menu.onclick=()=>{const opened=menu.getAttribute('aria-expanded')==='true';menu.setAttribute('aria-expanded',String(!opened));document.querySelector('#main-nav').classList.toggle('open',!opened)};
   document.querySelectorAll('.search').forEach(f=>f.onsubmit=e=>{e.preventDefault();navigate('/kho-sim?q='+encodeURIComponent(new FormData(f).get('q')))});
   document.querySelectorAll('.filters').forEach(f=>f.onsubmit=e=>{e.preventDefault();const p=new URLSearchParams();for(const [k,v]of new FormData(f))if(v)p.set(k,v);navigate(routePath()+'?'+p)});
+  document.querySelectorAll('[data-search]').forEach(button=>button.onclick=()=>{if(routePath()!=='/')navigate('/kho-sim');const input=document.querySelector('.search input');input?.scrollIntoView({behavior:'smooth',block:'center'});input?.focus({preventScroll:true});});
+  const homeFilter=document.querySelector('.home-filters');if(homeFilter){const apply=e=>{e.preventDefault();const params=new URLSearchParams();for(const [key,value]of new FormData(homeFilter))if(value&&key!=='carrier')params.set(key,value);navigate('/kho-sim?'+params);};homeFilter.onsubmit=apply;homeFilter.onchange=apply;}
   const filterToggle=document.querySelector('.filter-toggle');if(filterToggle)filterToggle.onclick=()=>{const f=document.querySelector('.filters');const open=f.classList.toggle('open');filterToggle.setAttribute('aria-expanded',String(open))};
-  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{const id=Number(b.dataset.save);favorites=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id];try{localStorage.setItem('favorites',JSON.stringify(favorites))}catch{toast('Trình duyệt không cho lưu trên thiết bị này.')}document.querySelectorAll(`[data-save="${id}"]`).forEach(btn=>{btn.classList.toggle('saved',favorites.includes(id));btn.setAttribute('aria-pressed',String(favorites.includes(id)));if(!btn.classList.contains('heart'))btn.innerHTML=ic('heart')+(favorites.includes(id)?'Đã lưu':'Lưu sim')})});
+  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{const id=Number(b.dataset.save);favorites=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id];try{localStorage.setItem('favorites',JSON.stringify(favorites))}catch{toast('Trình duyệt không cho lưu trên thiết bị này.')}document.querySelectorAll(`[data-save="${id}"]`).forEach(btn=>{btn.classList.toggle('saved',favorites.includes(id));btn.setAttribute('aria-pressed',String(favorites.includes(id)));if(!btn.classList.contains('heart'))btn.innerHTML=ic('heart')+(favorites.includes(id)?'Đã lưu':'Lưu sim')});document.querySelectorAll('.saved-count').forEach(el=>el.textContent=favorites.length);if(activeState?.path==='/yeu-thich'){activeState.data.items=activeState.data.items.filter(sim=>favorites.includes(sim.id));paint(activeState);}});
   const share=document.getElementById('share');if(share)share.onclick=async()=>{try{if(navigator.share)await navigator.share({title:document.title,url:location.href});else{await navigator.clipboard.writeText(location.href);toast('Đã sao chép liên kết sim')}}catch(e){if(e.name!=='AbortError')toast('Bạn có thể sao chép địa chỉ trên thanh trình duyệt.')}};
   app.querySelectorAll('[data-buy]').forEach(button=>button.onclick=()=>openConsult(button.dataset.buy));
   bindRequests(app);
@@ -398,7 +400,8 @@ document.addEventListener('click',e=>{
   const route=internalFrom(url);if(!route)return;
   e.preventDefault();navigate(route);
 });
+matchMedia('(min-width:821px)').addEventListener?.('change',event=>{const disclosure=app.querySelector('.footer-disclosure');if(disclosure)disclosure.open=event.matches;});
 window.addEventListener('popstate',()=>{closeConsult();render()});
-/* Liên kết cũ dạng /#/kho-sim được chuyển sang địa chỉ thật */
+/* Keep old shared links usable; new links are flat files returning HTTP 200. */
 if(location.hash.startsWith('#/'))history.replaceState({},'',toHref(location.hash.slice(1)));
-if(!window.STATIC_BUILD)render();
+if(!window.STATIC_BUILD){const path=routePath();if(path!=='/'&&!location.pathname.endsWith('.html')&&(ROUTES.includes(path)||/^\/sim\/\d+$/.test(path)))location.replace(toHref(path+routeSearch()));else render();}

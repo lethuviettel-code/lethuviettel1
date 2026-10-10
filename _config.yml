@@ -1,0 +1,14 @@
+# GitHub Pages main / (root): only public storefront files are published.
+exclude:
+  - README.md
+  - shell.html
+  - prerender.cjs
+  - assets.cjs
+  - mobile.test.cjs
+  - package.json
+  - package-lock.json
+  - node_modules
+  - test-results
+  - dist
+  - data
+  - .venv

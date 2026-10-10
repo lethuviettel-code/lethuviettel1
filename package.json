@@ -1,0 +1,14 @@
+{
+  "name": "viettel-phu-ha",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node prerender.cjs",
+    "start": "npm run build && python3 -m http.server 3000 --bind 0.0.0.0 --directory dist",
+    "test": "node --test mobile.test.cjs",
+    "assets": "node assets.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
