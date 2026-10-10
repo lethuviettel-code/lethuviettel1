@@ -143,6 +143,25 @@ function homeFilters(){return `<section class="home-filter" aria-labelledby="hom
 function homeSkeleton(){return `<p class="sr-only" role="status">Đang cập nhật sim từ cửa hàng…</p>${Array.from({length:4},()=>'<article class="sim-card skeleton" aria-hidden="true"><div class="skeleton-logo"></div><div class="skeleton-number"></div><div class="skeleton-tags"></div><div class="skeleton-price"></div><div class="skeleton-actions"></div></article>').join('')}`;}
 function homeBenefits(){return `<section class="home-benefits" aria-label="Dịch vụ cửa hàng">${[['database','Kho sim đa dạng','Chọn số phù hợp'],['shield','Đăng ký chính chủ','Hướng dẫn tận tâm'],['headset','Tư vấn nhanh','Gọi lại theo yêu cầu'],['support','3 cơ sở Phú Thọ','Đồng hành cùng bạn']].map(([icon,title,text])=>`<div><i>${ic(icon)}</i><span><b>${title}</b><small>${text}</small></span></div>`).join('')}</section>`;}
 function feedbackSection(){const feedbackUrl=config.zalo_url||'mailto:'+config.email;return `<section class="feedback-section" aria-labelledby="feedback-title"><div class="section-head"><h2 id="feedback-title"><span class="section-icon gold" aria-hidden="true">★</span>Khách hàng nói về chúng tôi</h2><a href="${esc(feedbackUrl)}"${config.zalo_url?' target="_blank" rel="noopener"':''}>Gửi đánh giá${ic('chev')}</a></div><div class="feedback-grid"><article class="feedback-card"><div class="feedback-person"><i>${ic('user')}</i><div><h3>Chia sẻ trải nghiệm của bạn</h3><small>${esc(config.name)}</small></div></div><p>Bạn đã tìm được sim ưng ý? Hãy chia sẻ để cửa hàng phục vụ bạn tốt hơn.</p><a class="text-link" href="${esc(feedbackUrl)}"${config.zalo_url?' target="_blank" rel="noopener"':''}>Gửi lời nhận xét${ic('chev')}</a></article><article class="feedback-card"><div class="feedback-person"><i>${ic('headset')}</i><div><h3>Luôn sẵn sàng lắng nghe</h3><small>Đồng hành cùng khách hàng</small></div></div><p>Cần hỗ trợ chọn sim hoặc đăng ký chính chủ? Liên hệ nhân viên tại 3 cơ sở.</p>${link('/lien-he','Liên hệ cửa hàng'+ic('chev'),'text-link')}</article></div></section>`;}
+const STORE_PHOTOS=[
+ ['cua-hang-1','Mặt tiền đại lý ủy quyền Viettel Telecom tại Khu 8, phường Phú Thọ','Mặt tiền · Khu 8, phường Phú Thọ',900,1200],
+ ['cua-hang-2','Quầy giao dịch và khu tư vấn bên trong cửa hàng Viettel tại phường Phú Thọ','Quầy giao dịch · Phường Phú Thọ',1200,900],
+ ['cua-hang-3','Mặt tiền cửa hàng Viettel số 38 đường Âu Cơ, Khu Tân Sơn, Lâm Thao','Mặt tiền · Số 38 Âu Cơ, Lâm Thao',944,1200],
+ ['cua-hang-4','Không gian bên trong cửa hàng Viettel tại Lâm Thao với quầy tư vấn và phụ kiện','Không gian cửa hàng · Lâm Thao',900,1200],
+ ['cua-hang-5','Mặt tiền cửa hàng Viettel số 1360 đường Hùng Vương, phường Thanh Miếu','Mặt tiền · SN 1360 Hùng Vương, Thanh Miếu',900,1200],
+ ['cua-hang-6','Bàn giao dịch và khu tiếp khách bên trong cửa hàng Viettel tại Thanh Miếu','Quầy giao dịch · Thanh Miếu',1124,1200]
+];
+function storeGallery(){const n=STORE_PHOTOS.length;return `<section class="store-gallery" aria-labelledby="gallery-title" aria-roledescription="carousel"><div class="section-head"><h2 id="gallery-title"><span class="section-icon" aria-hidden="true">📍</span>Hình ảnh cửa hàng thực tế</h2></div><p class="gallery-lede">Đến trực tiếp cửa hàng để được tư vấn và đăng ký sim chính chủ.</p><div class="gallery" data-gallery><div class="gallery-viewport"><div class="gallery-track">${STORE_PHOTOS.map(([f,alt,cap,w,h],i)=>`<figure class="gallery-slide" role="group" aria-roledescription="slide" aria-label="Ảnh ${i+1} / ${n}" style="--bg:url(${BASE_PATH}/${f}.webp)"><img src="${BASE_PATH}/${f}.webp" alt="${esc(alt)}" width="${w}" height="${h}" loading="lazy" decoding="async"><figcaption>${esc(cap)}</figcaption></figure>`).join('')}</div><button type="button" class="gallery-nav prev" data-gallery-prev aria-label="Ảnh trước">${ic('chev')}</button><button type="button" class="gallery-nav next" data-gallery-next aria-label="Ảnh tiếp theo">${ic('chev')}</button></div><div class="gallery-dots" role="tablist" aria-label="Chọn ảnh">${STORE_PHOTOS.map((p,i)=>`<button type="button" role="tab" data-gallery-dot="${i}" aria-label="Xem ảnh ${i+1}" aria-selected="${i===0}"></button>`).join('')}</div></div></section>`;}
+let galleryTimer=0;
+function initGallery(){clearInterval(galleryTimer);const g=app.querySelector('[data-gallery]');if(!g)return;const track=g.querySelector('.gallery-track'),dots=[...g.querySelectorAll('[data-gallery-dot]')],n=dots.length;let i=0,hold=false;
+ const go=k=>{i=(k+n)%n;track.style.transform='translateX(-'+i*100+'%)';dots.forEach((d,x)=>d.setAttribute('aria-selected',String(x===i)));};
+ const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+ const start=()=>{clearInterval(galleryTimer);if(!reduce)galleryTimer=setInterval(()=>{if(!hold&&!document.hidden)go(i+1)},4000);};
+ g.querySelector('[data-gallery-prev]').onclick=()=>{go(i-1);start()};g.querySelector('[data-gallery-next]').onclick=()=>{go(i+1);start()};
+ dots.forEach(d=>d.onclick=()=>{go(Number(d.dataset.galleryDot));start()});
+ g.onmouseenter=()=>{hold=true};g.onmouseleave=()=>{hold=false};g.onfocusin=()=>{hold=true};g.onfocusout=()=>{hold=false};
+ let x0=null;track.ontouchstart=e=>{x0=e.touches[0].clientX;hold=true};track.ontouchend=e=>{if(x0!==null){const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)go(i+(dx<0?1:-1));}x0=null;hold=false;start()};
+ start();}
 function home(data=null) {
  return `${homeHero()}<main id="main" class="container home-main">
   <section class="home-categories" aria-label="Chọn sim theo nhu cầu">${[
@@ -151,7 +170,7 @@ function home(data=null) {
   <section class="home-featured" aria-labelledby="stock-title"><div class="section-head"><h2 id="stock-title"><span class="section-icon" aria-hidden="true">🔥</span>Sim số đẹp nổi bật</h2>${link('/kho-sim','Xem tất cả'+ic('chev'))}</div><div class="sim-grid home-grid">${data?data.items.map(sim=>card(sim)).join('')||empty():homeSkeleton()}</div></section>
   ${homeFilters()}
   <section class="home-promo" aria-labelledby="promo-title"><img src="${BASE_PATH}/promo.webp" alt="" loading="lazy" width="1942" height="432"><div><h2 id="promo-title">SIM ĐẸP GIÁ TỐT<br><span>TƯ VẤN CHỌN SIM</span></h2><p>Chọn số theo nhu cầu.<br>Gọi lại tư vấn tận tâm.</p>${link('/lien-he','Tìm hiểu ngay'+ic('chev'),'promo-button')}</div></section>
-  ${homeBenefits()}${feedbackSection()}
+  ${homeBenefits()}${feedbackSection()}${storeGallery()}
   <section class="home-store-note"><p>${esc(config.name)} · ${config.branches.length} cơ sở tại Phú Thọ</p><a href="${phoneHref()}">${ic('phone')}${esc(config.phone)}</a></section>
  </main>`;
 }
@@ -387,7 +406,7 @@ function bind() {
   const share=document.getElementById('share');if(share)share.onclick=async()=>{try{if(navigator.share)await navigator.share({title:document.title,url:location.href});else{await navigator.clipboard.writeText(location.href);toast('Đã sao chép liên kết sim')}}catch(e){if(e.name!=='AbortError')toast('Bạn có thể sao chép địa chỉ trên thanh trình duyệt.')}};
   app.querySelectorAll('[data-buy]').forEach(button=>button.onclick=()=>openConsult(button.dataset.buy));
   bindRequests(app);
-
+  if(!window.STATIC_BUILD)initGallery();
 }
 document.addEventListener('click',e=>{
   const a=e.target.closest('a');

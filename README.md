@@ -10,6 +10,7 @@ Tất cả tệp trên GitHub ở thư mục gốc. Giữ **Settings → Pages �
 | `shell.html` | Khung HTML, meta, phông chữ, biểu tượng |
 | `index.html`, `kho-sim.html`, `sim-phong-thuy.html`, `lien-he.html`, `chinh-sach.html`, `sim.html`, `yeu-thich.html`, `404.html` | HTML được dựng sẵn bằng `prerender.cjs` để giao diện hiện ngay; chỉnh mã nguồn rồi dựng lại |
 | `hero.webp`, `promo.webp` | Ảnh banner tối ưu dung lượng cho điện thoại |
+| `cua-hang-1.webp` … `cua-hang-6.webp` | 6 ảnh cửa hàng thực tế, tự chuyển ở cuối trang chủ (danh sách `STORE_PHOTOS` trong `app.js`) |
 | `admin.html` | Mở đúng admin Apps Script hiện tại; quản lý sim, yêu cầu và Zalo vẫn tại Google |
 | `assets.cjs`, `favicon.svg`, các tệp PNG, `site.webmanifest` | Ảnh chia sẻ và biểu tượng ứng dụng |
 | `sitemap.xml`, `robots.txt`, `CNAME` | SEO, tên miền |
