@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from flask import Flask, Response, g, jsonify, request, send_file
+from flask import Flask, Response, g, jsonify, redirect, request, send_file
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -32,12 +32,8 @@ DEFAULT_SETTINGS = {
     'name': 'Viettel Phú Hà', 'phone': '0344.639.666', 'email': 'thuntlpto.9x@gmail.com',
     'hours': '', 'zalo_url': '', 'site_url': '', 'banner_url': '',
     'tagline': 'Kết nối giá trị - Đồng hành cùng bạn',
-    'branches': BRANCHES, 'bank_name': '', 'bank_account': '', 'bank_holder': '',
-    'shipping_policy': '', 'return_policy': '', 'registration_policy': '', 'privacy_policy': '',
-    'hold_minutes': 30, 'checkout_enabled': False,
+    'branches': BRANCHES, 'registration_policy': '', 'privacy_policy': '',
 }
-ORDER_LABELS = {'new': 'Mới', 'confirmed': 'Đã xác nhận', 'shipping': 'Đang giao', 'completed': 'Hoàn tất', 'cancelled': 'Đã hủy', 'expired': 'Hết hạn giữ chỗ'}
-TRANSITIONS = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'shipping', 'cancelled'}, 'shipping': {'completed', 'cancelled'}, 'completed': set(), 'cancelled': set(), 'expired': set()}
 app = Flask(__name__, static_folder=None)
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 if os.environ.get('TRUST_PROXY') == '1':
@@ -100,6 +96,12 @@ def initialize():
         CREATE INDEX IF NOT EXISTS orders_branch_status ON orders(branch,status);
         CREATE INDEX IF NOT EXISTS sims_status_branch ON sims(status,branch);
         ''')
+        # Additive migration preserves existing consultation and historical order data.
+        columns = {row['name'] for row in db.execute('PRAGMA table_info(leads)')}
+        for name, declaration in {'sim_id': 'INTEGER REFERENCES sims(id)', 'sim_number': "TEXT NOT NULL DEFAULT ''", 'quoted_price': 'INTEGER', 'request_key': 'TEXT'}.items():
+            if name not in columns:
+                db.execute(f'ALTER TABLE leads ADD COLUMN {name} {declaration}')
+        db.execute('CREATE UNIQUE INDEX IF NOT EXISTS leads_request_key ON leads(request_key)')
         db.execute('INSERT OR IGNORE INTO settings VALUES(1,?)', (json.dumps(DEFAULT_SETTINGS, ensure_ascii=False),))
 
 
@@ -204,8 +206,8 @@ def valid_sim(data):
     if element not in ('', 'Kim', 'Mộc', 'Thủy', 'Hỏa', 'Thổ'):
         raise Problem('Ngũ hành không hợp lệ.')
     status = data.get('status', 'available')
-    if status not in ('available', 'hidden'):
-        raise Problem('Trạng thái kho được thay đổi bởi đơn hàng; chỉ chọn còn hàng hoặc ẩn.')
+    if status not in ('available', 'hidden', 'reserved', 'sold'):
+        raise Problem('Trạng thái kho không hợp lệ.')
     return {'number': number, 'price': integer(data.get('price'), 'Giá bán', 1), 'type': kind,
             'element': element, 'branch': branch(data.get('branch')), 'status': status,
             'description': text(data.get('description', ''), 'Mô tả', 2000, False),
@@ -302,7 +304,7 @@ def health():
 def get_settings():
     with database() as db:
         data = settings(db)
-    return jsonify(data)
+    return jsonify({k: v for k, v in data.items() if k not in {'bank_name', 'bank_account', 'bank_holder', 'hold_minutes', 'checkout_enabled', 'shipping_policy', 'return_policy'}})
 
 
 @app.get('/api/sims')
@@ -358,68 +360,9 @@ def get_sim(sid):
 
 
 @app.post('/api/orders')
-def create_order():
-    limit('orders', 10, 600)
-    data = body()
-    if data.get('website'):
-        raise Problem('Yêu cầu không hợp lệ.')
-    name = text(data.get('name'), 'Họ tên', 100)
-    customer_phone = phone(data.get('phone'))
-    address = text(data.get('address'), 'Địa chỉ nhận hàng', 500)
-    note = text(data.get('note', ''), 'Ghi chú', 1000, False)
-    selected_branch = branch(data.get('branch'))
-    if data.get('consent') is not True:
-        raise Problem('Vui lòng đồng ý chính sách xử lý dữ liệu.')
-    sid = integer(data.get('sim_id'), 'Sim', 1)
-    key = text(data.get('request_key'), 'Mã yêu cầu', 100)
-    if not re.fullmatch(r'[a-zA-Z0-9-]{16,100}', key):
-        raise Problem('Mã yêu cầu không hợp lệ.')
-    lookup = text(data.get('lookup_token'), 'Mã tra cứu', 100)
-    if not re.fullmatch(r'[a-zA-Z0-9-]{24,100}', lookup):
-        raise Problem('Mã tra cứu không hợp lệ.')
-    lookup_hash = hashlib.sha256(lookup.encode()).hexdigest()
-    with database(True) as db:
-        expire_holds(db)
-        previous = db.execute('SELECT * FROM orders WHERE request_key=?', (key,)).fetchone()
-        if previous:
-            if not hmac.compare_digest(previous['lookup_hash'], lookup_hash):
-                raise Problem('Yêu cầu bị trùng.', 409)
-            return jsonify(id=previous['id'], status=previous['status'], hold_until=previous['hold_until'])
-        config = settings(db)
-        if not config.get('checkout_enabled'):
-            raise Problem('Cửa hàng chưa mở nhận đơn trực tuyến. Vui lòng liên hệ hotline.', 503)
-        row = db.execute("SELECT * FROM sims WHERE id=? AND status='available'", (sid,)).fetchone()
-        if not row:
-            raise Problem('Sim này vừa được giữ chỗ hoặc không còn bán. Vui lòng chọn sim khác.', 409)
-        payment = data.get('payment', 'cod')
-        if payment not in ('cod', 'bank') or (payment == 'bank' and not all(config.get(k) for k in ('bank_name', 'bank_account', 'bank_holder'))):
-            raise Problem('Hình thức thanh toán chưa được hỗ trợ.')
-        oid = 'PH-' + secrets.token_hex(5).upper()
-        hold_until = now() + config['hold_minutes'] * 60
-        # The inventory branch owns the order; pickup/delivery preference is recorded separately.
-        note = f"Nhận/hỗ trợ tại {selected_branch.upper()}. " + note
-        db.execute('''INSERT INTO orders(id,sim_id,number,price,name,phone,address,branch,payment,note,
-          lookup_hash,request_key,created,updated,hold_until) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-          (oid, sid, row['number'], row['price'], name, customer_phone, address, row['branch'], payment,
-           note, lookup_hash, key, now(), now(), hold_until))
-        db.execute("UPDATE sims SET status='reserved',updated=? WHERE id=?", (now(), sid))
-        audit(db, 'order.created', oid, {'sim_id': sid})
-        queue_mail(db, 'Đơn đặt sim mới ' + oid, 'Có yêu cầu đặt sim mới. Vào trang quản trị để xác nhận trước khi hết thời gian giữ chỗ.')
-    return jsonify(id=oid, status='new', hold_until=hold_until), 201
-
-
 @app.post('/api/orders/lookup')
-def lookup_order():
-    limit('lookup', 20, 600)
-    data = body()
-    oid = text(data.get('id'), 'Mã đơn', 30).upper()
-    token = text(data.get('token'), 'Mã tra cứu', 100)
-    with database(True) as db:
-        expire_holds(db)
-        row = db.execute('SELECT * FROM orders WHERE id=?', (oid,)).fetchone()
-        if not row or not hmac.compare_digest(row['lookup_hash'], hashlib.sha256(token.encode()).hexdigest()):
-            raise Problem('Mã đơn hoặc mã tra cứu không đúng.', 404)
-    return jsonify({k: row[k] for k in ('id', 'number', 'price', 'status', 'payment', 'paid', 'created', 'hold_until')})
+def retired_checkout():
+    raise Problem('Vui lòng chọn sim và gửi yêu cầu gọi tư vấn.', 410)
 
 
 @app.post('/api/leads')
@@ -428,14 +371,35 @@ def create_lead():
     data = body()
     if data.get('website') or data.get('consent') is not True:
         raise Problem('Vui lòng đồng ý chính sách xử lý dữ liệu.')
-    values = (text(data.get('name'), 'Họ tên', 100), phone(data.get('phone')),
-              text(data.get('message'), 'Nội dung tư vấn', 2000), branch(data.get('branch')), now(), now())
+    customer_name = text(data.get('name'), 'Họ tên', 100)
+    customer_phone = phone(data.get('phone'))
+    request_key = text(data.get('request_key', ''), 'Mã yêu cầu', 100, False)
+    if request_key and not re.fullmatch(r'[a-zA-Z0-9_-]{20,100}', request_key):
+        raise Problem('Mã yêu cầu không hợp lệ.')
+    selected_id = integer(data['sim_id'], 'Mã sim', 1) if data.get('sim_id') is not None else None
+    message = text(data.get('message', ''), 'Nội dung tư vấn', 2000, selected_id is None)
     with database(True) as db:
+        if request_key:
+            previous = db.execute('SELECT * FROM leads WHERE request_key=?', (request_key,)).fetchone()
+            if previous:
+                if (previous['name'], previous['phone'], previous['sim_id'], previous['message']) != (customer_name, customer_phone, selected_id, message):
+                    raise Problem('Yêu cầu đã gửi có thông tin khác. Vui lòng tải lại trang.', 409)
+                return jsonify(id=previous['id'], message='Đã nhận yêu cầu. Cửa hàng sẽ gọi tư vấn.'), 200
         if not settings(db).get('privacy_policy'):
             raise Problem('Cửa hàng chưa mở biểu mẫu tư vấn. Vui lòng gọi hotline.', 503)
-        sid = db.execute('INSERT INTO leads(name,phone,message,branch,created,updated) VALUES(?,?,?,?,?,?)', values).lastrowid
-        queue_mail(db, 'Yêu cầu tư vấn mới', 'Có khách cần tư vấn. Vào trang quản trị để phân công và liên hệ.')
-    return jsonify(id=sid, message='Đã nhận yêu cầu. Nhân viên sẽ liên hệ với bạn.'), 201
+        sim = None
+        if selected_id is not None:
+            sim = db.execute('SELECT * FROM sims WHERE id=?', (selected_id,)).fetchone()
+            if not sim or sim['status'] != 'available':
+                raise Problem('Sim này hiện không còn sẵn để tư vấn. Vui lòng chọn sim khác hoặc gọi cửa hàng.', 409)
+        # Store an authoritative snapshot; consultation never reserves or sells stock.
+        customer_branch = sim['branch'] if sim else branch(data.get('branch'))
+        sid = db.execute('''INSERT INTO leads(name,phone,message,branch,created,updated,sim_id,sim_number,quoted_price,request_key)
+                            VALUES(?,?,?,?,?,?,?,?,?,?)''',
+                         (customer_name, customer_phone, message, customer_branch, now(), now(), selected_id,
+                          sim['number'] if sim else '', sim['price'] if sim else None, request_key or None)).lastrowid
+        queue_mail(db, 'Khách cần gọi tư vấn', 'Có yêu cầu mới. Vào trang quản trị để xem sim khách chọn và gọi lại.')
+    return jsonify(id=sid, message='Đã nhận yêu cầu. Cửa hàng sẽ gọi tư vấn.'), 201
 
 
 @app.post('/api/login')
@@ -500,9 +464,8 @@ def dashboard():
         args = [] if user['role'] == 'owner' else [user['branch']]
         where = '' if not args else ' WHERE branch=?'
         counts = {}
-        for table in ('sims', 'orders', 'leads'):
+        for table in ('sims', 'leads'):
             counts[table] = [dict(r) for r in db.execute(f'SELECT status,count(*) AS count FROM {table}{where} GROUP BY status', args)]
-        counts['revenue'] = [dict(r) for r in db.execute(f"SELECT branch,sum(price) AS total,count(*) AS count FROM orders WHERE status='completed' AND paid=1" + ('' if not args else ' AND branch=?') + ' GROUP BY branch', args)]
         counts['views'] = [dict(r) for r in db.execute('SELECT day,sum(count) AS count FROM metrics GROUP BY day ORDER BY day DESC LIMIT 7')] if user['role'] == 'owner' else []
         counts['popular_pages'] = [dict(r) for r in db.execute('SELECT page,sum(count) AS count FROM metrics GROUP BY page ORDER BY count DESC LIMIT 10')] if user['role'] == 'owner' else []
         counts['mail'] = [dict(r) for r in db.execute('SELECT status,count(*) AS count FROM outbox GROUP BY status')] if user['role'] == 'owner' else []
@@ -512,7 +475,7 @@ def dashboard():
 @app.get('/api/admin/<table>')
 def admin_list(table):
     user = require_user()
-    if table not in ('sims', 'orders', 'leads', 'audit', 'users'):
+    if table not in ('sims', 'leads', 'audit', 'users'):
         raise Problem('Không tìm thấy.', 404)
     if table in ('audit', 'users'):
         require_user(True)
@@ -531,7 +494,7 @@ def admin_list(table):
             args.append(request.args['status'])
         if request.args.get('q'):
             q = '%' + request.args['q'][:100] + '%'
-            fields = ['number'] if table == 'sims' else ['name', 'phone', 'id']
+            fields = ['number'] if table == 'sims' else ['name', 'phone', 'id'] + (['sim_number'] if table == 'leads' else [])
             conditions.append('(' + ' OR '.join(f'{f} LIKE ?' for f in fields) + ')')
             args.extend([q] * len(fields))
     where = ' WHERE ' + ' AND '.join(conditions) if conditions else ''
@@ -563,10 +526,8 @@ def edit_sim(sid):
     data = valid_sim(body())
     with database(True) as db:
         old = scope(db, 'sims', sid)
-        if old['status'] in ('reserved', 'sold'):
-            raise Problem('Sim đang giữ chỗ hoặc đã bán không thể sửa. Xử lý đơn hàng trước.', 409)
-        if db.execute('SELECT 1 FROM orders WHERE sim_id=? LIMIT 1', (sid,)).fetchone() and old['number'] != data['number']:
-            raise Problem('Không đổi số của sim đã có lịch sử đơn hàng.', 409)
+        if old['number'] != data['number'] and (db.execute('SELECT 1 FROM orders WHERE sim_id=? LIMIT 1', (sid,)).fetchone() or db.execute('SELECT 1 FROM leads WHERE sim_id=? LIMIT 1', (sid,)).fetchone()):
+            raise Problem('Không đổi số của sim đã có lịch sử tư vấn hoặc giao dịch.', 409)
         db.execute('UPDATE sims SET number=:number,price=:price,type=:type,element=:element,branch=:branch,status=:status,description=:description,featured=:featured,updated=:updated WHERE id=:id', {**data, 'id': sid})
         audit(db, 'sim.updated', sid, {'before': dict(old), 'after': data})
     return jsonify(ok=True)
@@ -647,36 +608,6 @@ def export(table):
     return Response('\ufeff' + output.getvalue(), content_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{table}.csv"'})
 
 
-@app.patch('/api/admin/orders/<oid>')
-def update_order(oid):
-    user = require_user()
-    data = body()
-    with database(True) as db:
-        expire_holds(db)
-        old = scope(db, 'orders', oid)
-        status = data.get('status', old['status'])
-        if status != old['status'] and status not in TRANSITIONS[old['status']]:
-            raise Problem('Không thể chuyển trạng thái đơn theo thứ tự này.', 409)
-        staff_note = text(data.get('staff_note', old['staff_note']), 'Ghi chú nội bộ', 2000, False)
-        assigned = assignment(db, data.get('assigned_to', old['assigned_to']), old['branch'], old['assigned_to'])
-        paid = data.get('paid', bool(old['paid']))
-        if not isinstance(paid, bool):
-            raise Problem('Trạng thái thanh toán không hợp lệ.')
-        if user['role'] != 'owner' and paid != bool(old['paid']):
-            raise Problem('Chỉ chủ cửa hàng được xác nhận thanh toán.', 403)
-        if status == 'completed' and not paid:
-            raise Problem('Cần xác nhận thanh toán trước khi hoàn tất đơn.')
-        if status == 'cancelled' and paid:
-            raise Problem('Đơn đã thu tiền: chủ cửa hàng cần xử lý hoàn tiền và bỏ đánh dấu đã thu trước khi hủy.')
-        db.execute('UPDATE orders SET status=?,staff_note=?,assigned_to=?,paid=?,updated=? WHERE id=?', (status, staff_note, assigned, int(paid), now(), oid))
-        if status in ('confirmed', 'shipping', 'completed'):
-            db.execute("UPDATE sims SET status='sold',updated=? WHERE id=?", (now(), old['sim_id']))
-        elif status == 'cancelled':
-            db.execute("UPDATE sims SET status='available',updated=? WHERE id=?", (now(), old['sim_id']))
-        audit(db, 'order.updated', oid, {'before': {k: old[k] for k in ('status', 'paid', 'assigned_to', 'staff_note')}, 'after': {'status': status, 'paid': paid, 'assigned_to': assigned, 'staff_note': staff_note}})
-    return jsonify(ok=True)
-
-
 def assignment(db, value, owned_branch, current=None):
     if value in (None, ''):
         if g.user['role'] != 'owner' and current not in (None, g.user['id']):
@@ -723,7 +654,7 @@ def update_settings():
     with database(True) as db:
         config = settings(db)
         for key, value in data.items():
-            if key in ('branches', 'hold_minutes', 'checkout_enabled'):
+            if key == 'branches':
                 continue
             maximum = 10000 if key.endswith('_policy') else 500
             config[key] = text(value, key, maximum, key in ('name', 'phone', 'email'))
@@ -755,16 +686,6 @@ def update_settings():
                         raise Problem('Link bản đồ phải là link Google Maps HTTPS.')
                 branches.append({'id': f'cs{index}', 'name': f'CS{index}', 'address': text(entry.get('address'), 'Địa chỉ', 300), 'map_url': map_url})
             config['branches'] = branches
-        config['hold_minutes'] = integer(data.get('hold_minutes', config['hold_minutes']), 'Thời gian giữ chỗ', 5, 1440)
-        if 'checkout_enabled' in data:
-            if not isinstance(data['checkout_enabled'], bool):
-                raise Problem('Cấu hình nhận đơn không hợp lệ.')
-            config['checkout_enabled'] = data['checkout_enabled']
-        if config['checkout_enabled']:
-            if not all(config.get(k) for k in ('hours', 'shipping_policy', 'return_policy', 'registration_policy', 'privacy_policy')):
-                raise Problem('Cần cập nhật giờ mở cửa và đầy đủ chính sách trước khi mở nhận đơn.')
-            if not db.execute("SELECT 1 FROM sims WHERE status='available' LIMIT 1").fetchone():
-                raise Problem('Cần có sim thật còn hàng trước khi mở nhận đơn.')
         db.execute('UPDATE settings SET value=? WHERE id=1', (json.dumps(config, ensure_ascii=False),))
         audit(db, 'settings.updated', 'store', {'fields': list(data)})
     return jsonify(ok=True)
@@ -887,12 +808,16 @@ def public_meta(sid=None):
     return config, sim, title, description, url
 
 
+@app.get('/tra-cuu')
+def retired_tracking():
+    return redirect('/lien-he', code=302)
+
+
 @app.get('/')
 @app.get('/kho-sim')
 @app.get('/sim-phong-thuy')
 @app.get('/lien-he')
 @app.get('/chinh-sach')
-@app.get('/tra-cuu')
 @app.get('/sim/<int:sid>')
 def index(sid=None):
     import html

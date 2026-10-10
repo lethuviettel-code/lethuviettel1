@@ -52,112 +52,114 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.json)
         return response.json
 
-    def open_checkout(self):
-        response = self.mutate('/api/admin/settings', {'hours': '08:00–20:00', 'privacy_policy': 'Chỉ sử dụng thông tin để xử lý yêu cầu.',
-                           'shipping_policy': 'Xác nhận phí trước khi giao.', 'return_policy': 'Liên hệ cửa hàng để xử lý đổi trả.',
-                           'registration_policy': 'Đăng ký theo quy định nhà mạng.', 'checkout_enabled': True}, 'patch')
+    def open_consultation(self):
+        response = self.mutate('/api/admin/settings', {'privacy_policy': 'Chỉ sử dụng thông tin để gọi tư vấn.'}, 'patch')
         self.assertEqual(response.status_code, 200, response.json)
 
-    def order_data(self, sid=None):
-        return {'sim_id': sid or self.sid, 'name': 'Khách kiểm thử', 'phone': '0988123456', 'address': 'Địa chỉ thử nghiệm',
-                'branch': 'cs2', 'payment': 'cod', 'consent': True, 'request_key': secrets.token_hex(20), 'lookup_token': secrets.token_hex(20)}
+    def lead_data(self, sid=None):
+        return {'sim_id': sid or self.sid, 'name': 'Khách kiểm thử', 'phone': '0988123456',
+                'message': '', 'consent': True, 'request_key': secrets.token_hex(20)}
 
-    def create_order(self):
-        self.open_checkout()
-        data = self.order_data()
-        data['price'] = 1
-        response = server.app.test_client().post('/api/orders', json=data)
+    def create_lead(self):
+        self.open_consultation()
+        data = self.lead_data()
+        response = server.app.test_client().post('/api/leads', json=data)
         self.assertEqual(response.status_code, 201, response.json)
         return response.json, data
 
-    def test_empty_store_and_checkout_gate(self):
-        response = self.mutate('/api/admin/settings', {'checkout_enabled': True}, 'patch')
-        self.assertEqual(response.status_code, 400)
-        response = server.app.test_client().post('/api/orders', json=self.order_data())
-        self.assertEqual(response.status_code, 503)
-        lead=server.app.test_client().post('/api/leads',json={'name':'Khách','phone':'0988123456','message':'Tư vấn','branch':'cs1','consent':True})
-        self.assertEqual(lead.status_code,503)
-        with server.database(True) as db:
-            db.execute('DELETE FROM sims')
-        self.assertEqual(self.client.get('/api/sims').json['total'], 0)
-
-    def test_checkout_persistence_and_lookup_privacy(self):
-        order, data = self.create_order()
+    def test_retired_checkout_and_privacy_gate(self):
         public = server.app.test_client()
-        self.assertEqual(public.get(f'/api/sims/{self.sid}').json['status'], 'reserved')
-        lookup = public.post('/api/orders/lookup', json={'id': order['id'], 'token': data['lookup_token']})
-        self.assertEqual(lookup.status_code, 200)
-        self.assertEqual(lookup.json['price'],1500000)
-        self.assertNotIn('phone', lookup.json)
-        self.assertNotIn('address', lookup.json)
-        self.assertEqual(public.post('/api/orders/lookup', json={'id': order['id'], 'token': 'incorrect'}).status_code, 404)
-        duplicate = public.post('/api/orders', json=data)
-        self.assertEqual(duplicate.json['id'], order['id'])
-        self.assertEqual(self.client.get('/api/admin/orders').json['total'], 1)
+        self.assertEqual(public.post('/api/orders', json={}).status_code, 410)
+        self.assertEqual(public.post('/api/orders/lookup', json={}).status_code, 410)
+        self.assertEqual(public.get('/tra-cuu').headers['Location'], '/lien-he')
+        self.assertEqual(public.post('/api/leads', json=self.lead_data()).status_code, 503)
+        config = public.get('/api/settings').json
+        for key in ('bank_account', 'bank_holder', 'bank_name', 'checkout_enabled', 'hold_minutes'):
+            self.assertNotIn(key, config)
+
+    def test_selected_sim_snapshot_persistence_and_retry(self):
+        self.open_consultation()
+        public = server.app.test_client()
+        data = {**self.lead_data(), 'price': 1, 'branch': 'cs3', 'number': '0999999999'}
+        response = public.post('/api/leads', json=data)
+        self.assertEqual(response.status_code, 201, response.json)
+        retry = public.post('/api/leads', json=data)
+        self.assertEqual(retry.status_code, 200)
+        self.assertEqual(retry.json['id'], response.json['id'])
         server.initialize()
-        self.assertEqual(self.client.get('/api/admin/orders').json['items'][0]['id'], order['id'])
+        record = self.client.get('/api/admin/leads').json['items'][0]
+        self.assertEqual(record['sim_id'], self.sid)
+        self.assertEqual(record['sim_number'], '0344639666')
+        self.assertEqual(record['quoted_price'], 1500000)
+        self.assertEqual(record['branch'], 'cs1')
+        self.assertNotIn('request_key', record)
+        self.assertEqual(public.get(f'/api/sims/{self.sid}').json['status'], 'available')
+        self.assertEqual(public.get('/api/admin/leads').status_code, 401)
+        self.assertEqual(public.post('/api/leads', json={**data, 'phone': '0971234567'}).status_code, 409)
         with server.database() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM leads').fetchone()[0], 1)
+            self.assertEqual(db.execute('SELECT count(*) FROM orders').fetchone()[0], 0)
             self.assertEqual(db.execute('SELECT count(*) FROM outbox').fetchone()[0], 1)
 
-    def test_concurrent_reservations(self):
-        self.open_checkout()
-        def buy(_):
+    def test_concurrent_retry_and_multiple_customers_without_reserving(self):
+        self.open_consultation()
+        data = self.lead_data()
+        def send(payload):
             with server.app.test_client() as client:
-                response = client.post('/api/orders', json=self.order_data())
-                return response.status_code
+                return client.post('/api/leads', json=payload).status_code
         with ThreadPoolExecutor(max_workers=2) as pool:
-            codes = list(pool.map(buy, range(2)))
-        self.assertEqual(sorted(codes), [201, 409])
-        self.assertEqual(self.client.get('/api/admin/orders').json['total'], 1)
-
-    def test_expired_hold_and_order_transitions(self):
-        order, data = self.create_order()
-        with server.database(True) as db:
-            db.execute('UPDATE orders SET hold_until=?', (server.now() - 1,))
+            self.assertEqual(sorted(pool.map(send, [data, data])), [200, 201])
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            self.assertEqual(list(pool.map(send, [self.lead_data(), self.lead_data()])), [201, 201])
+        self.assertEqual(self.client.get('/api/admin/leads').json['total'], 3)
         self.assertEqual(self.client.get(f'/api/sims/{self.sid}').json['status'], 'available')
-        self.assertEqual(self.client.get('/api/admin/orders').json['items'][0]['status'], 'expired')
-        self.assertEqual(self.mutate('/api/admin/orders/' + order['id'], {'status': 'confirmed'}, 'patch').status_code, 409)
-        second = server.app.test_client().post('/api/orders', json=self.order_data()).json
-        oid = second['id']
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'completed'}, 'patch').status_code, 409)
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'confirmed'}, 'patch').status_code, 200)
-        self.assertEqual(self.client.get(f'/api/sims/{self.sid}').json['status'], 'sold')
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'shipping'}, 'patch').status_code, 200)
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'completed'}, 'patch').status_code, 400)
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'completed', 'paid': True}, 'patch').status_code, 200)
-        self.assertEqual(self.client.get('/api/admin/dashboard').json['revenue'][0]['total'], 1500000)
 
-    def test_cancellation_releases_stock_but_paid_requires_refund(self):
-        order, _ = self.create_order()
-        oid = order['id']
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'paid': True}, 'patch').status_code, 200)
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'cancelled'}, 'patch').status_code, 400)
-        self.assertEqual(self.mutate('/api/admin/orders/' + oid, {'status': 'cancelled', 'paid': False}, 'patch').status_code, 200)
+    def test_manual_inventory_and_consultation_history(self):
+        self.create_lead()
+        original = self.client.get(f'/api/sims/{self.sid}').json
+        for status in ('reserved', 'sold', 'hidden', 'available'):
+            response = self.mutate(f'/api/admin/sims/{self.sid}', {**original, 'status': status}, 'patch')
+            self.assertEqual(response.status_code, 200, response.json)
+            if status != 'available':
+                self.assertEqual(server.app.test_client().post('/api/leads', json=self.lead_data()).status_code, 409)
+        self.assertEqual(self.mutate(f'/api/admin/sims/{self.sid}', {**original, 'number': '0971234567'}, 'patch').status_code, 409)
+        self.assertEqual(server.app.test_client().post('/api/leads', json=self.lead_data(999999)).status_code, 409)
+        self.assertEqual(self.client.get('/api/admin/leads?q=0344639666').json['total'], 1)
+        record = self.client.get('/api/admin/leads').json['items'][0]
+        self.assertEqual(self.mutate('/api/admin/leads/'+str(record['id']), {'status': 'done'}, 'patch').status_code, 200)
         self.assertEqual(self.client.get(f'/api/sims/{self.sid}').json['status'], 'available')
 
     def test_staff_scope_and_csrf(self):
         other_sid = self.add_sim('0987654321', 'cs2')['id']
-        self.open_checkout()
-        order = server.app.test_client().post('/api/orders', json=self.order_data(other_sid)).json
+        self.open_consultation()
+        lead = server.app.test_client().post('/api/leads', json=self.lead_data(other_sid)).json
         staff = server.app.test_client()
         csrf = self.login(staff, 'staff1')
         self.assertEqual(staff.get('/api/admin/sims').json['total'], 1)
-        self.assertEqual(staff.get('/api/admin/orders').json['total'], 0)
-        self.assertEqual(self.mutate('/api/admin/orders/' + order['id'], {'status': 'confirmed'}, 'patch', staff, csrf).status_code, 403)
+        self.assertEqual(staff.get('/api/admin/leads').json['total'], 0)
+        self.assertEqual(self.mutate('/api/admin/leads/' + str(lead['id']), {'status': 'contacted'}, 'patch', staff, csrf).status_code, 403)
         self.assertEqual(self.mutate('/api/admin/settings', {'hours': 'X'}, 'patch', staff, csrf).status_code, 403)
         self.assertEqual(staff.get('/api/admin/backup').status_code, 403)
-        self.assertEqual(staff.get('/api/admin/export/orders').status_code, 200)
-        self.assertNotIn(order['id'], staff.get('/api/admin/export/orders').text)
-        self.assertEqual(self.client.post('/api/admin/sims', json={'number':'0987654321'}).status_code, 403)
-        self.assertEqual(self.client.post('/api/leads', json={}, headers={'Origin':'https://evil.test'}).status_code, 403)
-        self.assertEqual(server.app.test_client().get('/api/admin/orders').status_code, 401)
+        self.assertNotIn('0987654321', staff.get('/api/admin/export/leads').text)
+        self.assertEqual(self.client.post('/api/admin/sims', json={'number': '0987654321'}).status_code, 403)
+        self.assertEqual(self.client.post('/api/leads', json={}, headers={'Origin': 'https://evil.test'}).status_code, 403)
 
-    def test_staff_cannot_confirm_payment(self):
-        order, _ = self.create_order()
-        staff = server.app.test_client()
-        csrf = self.login(staff, 'staff1')
-        self.assertEqual(self.mutate('/api/admin/orders/' + order['id'], {'paid':True}, 'patch', staff, csrf).status_code, 403)
-        self.assertEqual(self.mutate('/api/admin/orders/' + order['id'], {'status':'confirmed','assigned_to':2}, 'patch', staff, csrf).status_code, 200)
+    def test_additive_migration_preserves_existing_consultations(self):
+        with server.database(True) as db:
+            db.execute('DROP TABLE leads')
+            db.execute("""CREATE TABLE leads (id INTEGER PRIMARY KEY, name TEXT NOT NULL, phone TEXT NOT NULL,
+                message TEXT NOT NULL, branch TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new',
+                staff_note TEXT NOT NULL DEFAULT '', assigned_to INTEGER, follow_up TEXT NOT NULL DEFAULT '',
+                created INTEGER NOT NULL, updated INTEGER NOT NULL)""")
+            db.execute('INSERT INTO leads(name,phone,message,branch,created,updated) VALUES(?,?,?,?,?,?)',
+                       ('Khách cũ', '0988123456', 'Yêu cầu đã lưu', 'cs1', server.now(), server.now()))
+        server.initialize()
+        record = self.client.get('/api/admin/leads').json['items'][0]
+        self.assertEqual(record['name'], 'Khách cũ')
+        self.assertEqual(record['message'], 'Yêu cầu đã lưu')
+        self.assertEqual(record['sim_number'], '')
+        self.create_lead()
+        self.assertEqual(self.client.get('/api/admin/leads').json['total'], 2)
 
     def test_lead_assignment_and_schedule(self):
         self.mutate('/api/admin/settings', {'privacy_policy': 'Chính sách thử nghiệm.'}, 'patch')
@@ -218,7 +220,8 @@ class StoreTests(unittest.TestCase):
         response=self.mutate('/api/admin/sims/bulk-price',{'ids':[self.sid],'price':2000000})
         self.assertEqual(response.status_code,200)
         self.assertEqual(self.client.get(f'/api/sims/{self.sid}').json['price'],2000000)
-        self.create_order()
+        with server.database(True) as db:
+            db.execute("UPDATE sims SET status='reserved' WHERE id=?", (self.sid,))
         self.assertEqual(self.mutate('/api/admin/sims/bulk-price',{'ids':[self.sid],'price':3000000}).status_code,409)
         self.assertTrue(any(r['action']=='sim.bulk_price' for r in self.client.get('/api/admin/audit').json['items']))
 
@@ -269,13 +272,13 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.mutate('/api/admin/settings',{'banner_url':response.json['url']},'patch').status_code,200)
 
     def test_backup_restore_consistency_and_no_sessions(self):
-        order,_=self.create_order()
+        lead,_=self.create_lead()
         backup=self.client.get('/api/admin/backup')
         self.assertEqual(backup.status_code,200)
         backup_file=Path(temporary.name)/'snapshot.sqlite3';backup_file.write_bytes(backup.data)
         with sqlite3.connect(backup_file) as db:
             self.assertEqual(db.execute('SELECT count(*) FROM sessions').fetchone()[0],0)
-            self.assertEqual(db.execute('SELECT id FROM orders').fetchone()[0],order['id'])
+            self.assertEqual(db.execute('SELECT id FROM leads').fetchone()[0],lead['id'])
         with server.database(True) as db:
             db.execute("UPDATE sims SET price=123 WHERE id=?",(self.sid,))
         result=subprocess.run([sys.executable,str(server.ROOT/'server.py'),'restore','--file',str(backup_file)],env=os.environ.copy(),capture_output=True,text=True)
@@ -285,7 +288,7 @@ class StoreTests(unittest.TestCase):
             self.assertEqual(db.execute('SELECT count(*) FROM sessions').fetchone()[0],0)
 
     def test_notifications_and_anonymous_metrics(self):
-        self.create_order()
+        self.create_lead()
         with patch.dict(os.environ,{'SMTP_HOST':'','SMTP_FROM':''}): server.deliver_mail()
         with server.database() as db:self.assertEqual(db.execute('SELECT status FROM outbox').fetchone()[0],'pending')
         with patch.dict(os.environ,{'SMTP_HOST':'smtp.example','SMTP_FROM':'store@example.test'}),patch('smtplib.SMTP_SSL') as smtp:

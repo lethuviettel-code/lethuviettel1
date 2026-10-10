@@ -1,10 +1,9 @@
-# Nội dung cần xác nhận trước khi mở bán
+# Cấu hình đơn giản trước khi nhận tư vấn
 
-Điền trong Quản trị → Cấu hình cửa hàng. Đây là hướng dẫn những thông tin cần có, không phải chính sách mặc định đã được cửa hàng chấp thuận.
+Trong **Quản trị → Cấu hình cửa hàng**, điền chính sách xử lý thông tin tư vấn theo hoạt động thực tế. Biểu mẫu sẽ mở khi nội dung này được lưu.
 
-- **Giao hàng & thanh toán:** khu vực giao, thời gian dự kiến, phí, nhận tại cơ sở, COD/chuyển khoản, thời điểm phải trả tiền, cách xác nhận đơn, điều kiện giữ số và hạn giữ chỗ.
-- **Đổi trả & hoàn tiền:** điều kiện được/không được đổi trả, hạn yêu cầu, cách liên hệ, thời gian và cách hoàn tiền, cách xử lý lỗi nhà mạng. Không hứa miễn phí hoặc bảo hành chưa có cơ sở.
-- **Đăng ký chính chủ:** giấy tờ/quy trình khách cần thực hiện theo quy định hiện hành của nhà mạng, nơi thực hiện, phí nếu có. Không thu ảnh giấy tờ qua website khi chưa có quy trình phù hợp.
-- **Bảo mật & dữ liệu:** đơn vị tiếp nhận, mục đích dùng tên/điện thoại/địa chỉ/nội dung yêu cầu, người được truy cập, bên giao nhận nếu có, thời hạn lưu, cách khách yêu cầu sửa/xóa và liên hệ xử lý. Bộ đếm lượt xem là tổng hợp; không cần tự nhận là dữ liệu hoàn toàn ẩn danh của hạ tầng hosting/proxy.
+Nêu cửa hàng tiếp nhận tên, số điện thoại, sim khách chọn và ghi chú để gọi tư vấn; nhân viên nào được truy cập, thời hạn lưu và cách khách liên hệ hotline 0344.639.666 để yêu cầu sửa/xóa thông tin. Không cần thu địa chỉ nhận hàng hay giấy tờ trên website.
 
-Ngoài nội dung trên, chủ cửa hàng cần xác nhận các nghĩa vụ công bố thông tin/đăng ký website và sử dụng thương hiệu phù hợp với hình thức kinh doanh thực tế trước khi công khai.
+Thông tin hướng dẫn đăng ký chính chủ có thể bổ sung theo quy trình nhà mạng tại cửa hàng. Tên miền, link Zalo và giờ mở cửa cũng có thể cập nhật sau trong trang quản trị.
+
+Khách chỉ gửi yêu cầu gọi lại. Cửa hàng trao đổi giao dịch trực tiếp với khách sau đó.

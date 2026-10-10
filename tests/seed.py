@@ -14,5 +14,5 @@ with server.database(True) as db:
         db.execute('INSERT INTO sims(number,price,type,element,branch,status,description,featured,updated) VALUES(?,?,?,?,?,?,?,?,?)',
           ('0868'+str(n).zfill(6),1000000+n*10000,['Sim tứ quý','Sim lộc phát','Sim tam hoa'][n%3],['Kim','Mộc','Thủy','Hỏa','Thổ'][n%5],['cs1','cs2','cs3'][n%3],'available','Mô tả kiểm thử, không phải kho thực tế.',int(n<8),server.now()))
     cfg=server.settings(db)
-    cfg.update(hours='08:00–20:00',shipping_policy='Chính sách giao hàng kiểm thử.',return_policy='Chính sách đổi trả kiểm thử.',registration_policy='Đăng ký theo quy định nhà mạng.',privacy_policy='Chính sách dữ liệu kiểm thử.',checkout_enabled=True)
+    cfg.update(hours='08:00–20:00',registration_policy='Đăng ký theo quy định nhà mạng.',privacy_policy='Chính sách dữ liệu kiểm thử.')
     db.execute('UPDATE settings SET value=?',(json.dumps(cfg,ensure_ascii=False),))
