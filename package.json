@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": ".venv/bin/gunicorn --bind 0.0.0.0:3000 --workers 2 --threads 4 --timeout 60 server:app",
-    "dev": ".venv/bin/python server.py serve",
-    "test:api": ".venv/bin/python -m unittest discover -s tests -p \"test_*.py\"",
-    "test:browser": "node --test tests/browser.test.cjs",
-    "test": "npm run test:api && npm run test:browser"
+    "start": "npm run build && python3 -m http.server 3000 --bind 0.0.0.0 --directory dist",
+    "dev": "npm start",
+    "build": "python3 scripts/build-static.py",
+    "test:api": "node --test tests/sheets.test.cjs",
+    "test:browser": "node --test tests/static-browser.test.cjs",
+    "test": "npm run test:api && npm run test:browser",
+    "test:legacy-api": ".venv/bin/python -m unittest discover -s tests -p \"test_*.py\""
   },
   "devDependencies": {
     "playwright": "1.56.1"
