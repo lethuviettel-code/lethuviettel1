@@ -2,7 +2,7 @@
 
 Website chạy trên GitHub Pages. Apps Script đọc kho sim và ghi yêu cầu mới vào Google Sheets. Trang quản trị nằm trên Apps Script và cần mật khẩu của cửa hàng. Không cần VPS, tài khoản khách hoặc thanh toán trên website.
 
-URL Apps Script bạn gửi đã được đặt trong `site-config.js`. **Cần cập nhật mã Apps Script theo các bước dưới đây**; chỉ có URL chưa bảo đảm mã hiện tại tương thích.
+URL Apps Script bạn gửi đã được đặt trong `site-config.js`. Các bước 1–3 dành cho thiết lập lần đầu. Nếu kho sim đã hiển thị và admin đã hoạt động, chuyển tới bước 4; bản sửa giao diện hiện ngay và nút mua sim không yêu cầu thay mã Apps Script.
 
 ## 1. Chuẩn bị Google Sheet riêng tư
 
@@ -39,12 +39,14 @@ Thử mở URL thêm `?action=settings`: phải thấy nội dung JSON có tên 
 Mở URL Apps Script thêm **`?view=admin`**, đăng nhập bằng mật khẩu ở bước 2. Hoặc vào `admin.html` trên website và bấm **Mở trang quản trị**.
 
 - **Kho sim:** thêm/sửa từng sim, giá, cơ sở, tình trạng; nhập CSV hoặc dán bảng từ Excel. Có tải mẫu CSV. Tối đa 5.000 sim mỗi lần. Tệp lỗi hoặc trùng bị từ chối toàn bộ.
-- **Cấu hình cửa hàng:** bổ sung giờ mở cửa, Zalo, tên miền và chính sách sử dụng thông tin tư vấn. Lưu chính sách này để mở biểu mẫu khách.
+- **Cấu hình cửa hàng:** bổ sung giờ mở cửa, Zalo, tên miền. Điền ô **Chính sách sử dụng tên/số điện thoại để gọi tư vấn**, bấm **Lưu cấu hình** để bật gửi yêu cầu. Nếu mục này trống, khách vẫn mở được form bằng nút Mua sim nhưng nút gửi bị khóa và có link gọi hotline.
 - **Khách cần tư vấn:** xem tên, số điện thoại, sim đã chọn, giá lúc gửi; gọi khách, ghi chú, hẹn gọi lại và đổi trạng thái **Mới → Đã liên hệ → Đã xử lý**.
 
 Nếu soạn bằng Excel, cột `number` phải định dạng **Text** trước khi dán số để giữ số 0 đầu. Lưu **CSV UTF-8** hoặc sao chép bảng gồm cả tiêu đề vào ô nhập admin. Không tải trực tiếp `.xlsx`; không dùng công thức. Cơ sở: `cs1`, `cs2`, `cs3`; tình trạng: `available`, `reserved`, `sold`, `hidden`.
 
 Gửi yêu cầu không tự giữ sim. Sau khi trao đổi với khách, cửa hàng tự đánh dấu **Đang giữ chỗ** hoặc **Đã bán** trong Kho sim. Giá và sim trong yêu cầu giữ nguyên lịch sử.
+
+Nội dung tham khảo để cửa hàng chỉnh sửa cho đúng cách vận hành: “Viettel Phú Hà sử dụng tên, số điện thoại và ghi chú để liên hệ tư vấn. Khách có thể gọi 0344.639.666 để yêu cầu sửa hoặc xóa thông tin.” Có thể bổ sung người được xem và thời gian lưu theo thực tế cửa hàng.
 
 ## 5. Xuất bản website
 
@@ -52,12 +54,14 @@ Trong repo GitHub: **Settings → Pages → Build and deployment → Source → 
 
 Website dùng link dạng `/#/kho-sim`, `/#/sim/1` nên tải lại hoặc chia sẻ link vẫn chạy trên GitHub Pages, kể cả thư mục `/lethuviettel1/`. CSS/ảnh dùng đường dẫn tương đối. Không chạy website này bằng GitHub Pages với URL sạch `/sim/1` như bản máy chủ cũ.
 
+Giao diện có sẵn trong HTML, không đợi Apps Script mới hiển thị. Chỉ vùng kho sim chờ cập nhật dữ liệu. Mất kết nối có nút **Thử lại** và hotline; dữ liệu khách đang nhập được giữ khi cập nhật ở nền. Build tự dựng giao diện từ `site-config.js` bằng Node.js, không lấy dữ liệu khách hoặc mật khẩu.
+
 Tên miền riêng: cấu hình trong **GitHub Settings → Pages → Custom domain** và DNS theo hướng dẫn GitHub. Trường tên miền trong admin chỉ thay thông tin cửa hàng, không tự đổi DNS.
 
 ## 6. Kiểm tra một yêu cầu thật có kiểm soát
 
 1. Nhập một sim thật, điền chính sách và mở website trên điện thoại.
-2. Chọn sim → nhập tên/số điện thoại → gửi.
+2. Bấm **Mua sim** trên thẻ sim → điền tên/số điện thoại, đồng ý chính sách → **Gửi thông tin mua sim**. Có thể mở form từ trang chi tiết sim.
 3. Xác nhận có dòng mới trong tab **YeuCau** và trang admin.
 4. Đổi giá hoặc đánh dấu sim đã bán trong admin, tải lại website để xác nhận.
 
