@@ -89,6 +89,7 @@ const routeSearch=()=>/^\/sim(?:\/|$)/.test(routePath())?'':location.search;
 function toHref(url){const [path,...q]=String(url).split('?'),clean=normPath(path),m=clean.match(/^\/sim\/(\d+)$/);if(m)return BASE_PATH+'/sim.html?id='+m[1];return BASE_PATH+(clean==='/'?'/':clean+'.html')+(q.length?'?'+q.join('?'):'');}
 const siteHref=url=>SITE+toHref(url).slice(BASE_PATH.length);
 function internalFrom(u){const p=normPath(u.pathname);if(p==='/sim'){const id=u.searchParams.get('id');return /^\d+$/.test(id||'')?'/sim/'+id:null;}return p==='/'||ROUTES.includes(p)?p+u.search:null;}
+async function readWithRetry(action,params){for(let n=0;;n++){try{return await SheetsClient.read(action,params,n?25000:20000);}catch(e){if(e.fromSheet||n>=2)throw e;await new Promise(r=>setTimeout(r,1000*(n+1)));}}}
 async function api(path,data) {
   if(!SheetsClient.configured()) {
     if(path==='/api/settings')return {...window.STORE_CONFIG};
@@ -102,7 +103,7 @@ async function api(path,data) {
   const action=u.pathname==='/api/settings'?'settings':u.pathname==='/api/sim-options'?'options':/^\/api\/sims\/\d+$/.test(u.pathname)?'sim':'sims';
   if(action==='sim')params.id=u.pathname.split('/').pop();
   const requestId=action+'?'+new URLSearchParams(params);
-  if(!inFlight.has(requestId))inFlight.set(requestId,SheetsClient.read(action,params).finally(()=>inFlight.delete(requestId)));
+  if(!inFlight.has(requestId))inFlight.set(requestId,readWithRetry(action,params).finally(()=>inFlight.delete(requestId)));
   const response=await inFlight.get(requestId);
   if(action==='settings'&&(!response||!Array.isArray(response.branches)||typeof response.phone!=='string'))throw new Error('Kết nối kho sim đang được cập nhật. Vui lòng gọi cửa hàng.');
   if(action==='sims'&&(!response||!Array.isArray(response.items)))throw new Error('Kho sim đang được cập nhật. Vui lòng gọi cửa hàng.');
@@ -155,6 +156,7 @@ function storeGallery(){const n=STORE_PHOTOS.length;return `<section class="stor
 let galleryTimer=0;
 function initGallery(){clearInterval(galleryTimer);const g=app.querySelector('[data-gallery]');if(!g)return;const track=g.querySelector('.gallery-track'),dots=[...g.querySelectorAll('[data-gallery-dot]')],n=dots.length;let i=0,hold=false;
  const go=k=>{i=(k+n)%n;track.style.transform='translateX(-'+i*100+'%)';dots.forEach((d,x)=>d.setAttribute('aria-selected',String(x===i)));};
+ g.querySelectorAll('img').forEach(im=>{im.loading='eager'});
  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
  const start=()=>{clearInterval(galleryTimer);if(!reduce)galleryTimer=setInterval(()=>{if(!hold&&!document.hidden)go(i+1)},4000);};
  g.querySelector('[data-gallery-prev]').onclick=()=>{go(i-1);start()};g.querySelector('[data-gallery-next]').onclick=()=>{go(i+1);start()};
