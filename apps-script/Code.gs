@@ -1,5 +1,5 @@
 /* Viettel Phú Hà — Google Sheets backend. Public endpoints never return leads.
-   Bind to a PRIVATE Google Sheet. Run setupStore_ once, then deploy as owner. */
+   Bind to a PRIVATE Google Sheet. Run setupStore once, then deploy as owner. */
 var SIM_HEADERS = ['id','number','price','type','element','branch','status','description','featured','updated'];
 var LEAD_HEADERS = ['id','created','name','phone','sim_id','sim_number','quoted_price','branch','message','status','staff_note','follow_up','request_key','request_hash'];
 var DEFAULT_STORE = {
@@ -10,6 +10,20 @@ var DEFAULT_STORE = {
     {id:'cs2',name:'CS2',address:'Thanh Miếu, Việt Trì, Phú Thọ',map_url:''},
     {id:'cs3',name:'CS3',address:'Cao Mại, Lâm Thao, Phú Thọ',map_url:''}]
 };
+// Visible editor entry points. Browser calls cannot provision/reset the store.
+function setupStore() {
+  requireEditorOwner_();
+  setupStore_();
+}
+function resetAdminPassword() {
+  requireEditorOwner_();
+  resetAdminPassword_();
+}
+function requireEditorOwner_() {
+  var active=Session.getActiveUser().getEmail();
+  var effective=Session.getEffectiveUser().getEmail();
+  if(!active||active!==effective)throw new Error('Chỉ chủ dự án chạy hàm này trong trình sửa Apps Script.');
+}
 function setupStore_() {
   var props=PropertiesService.getScriptProperties();
   var sheet=SpreadsheetApp.getActiveSpreadsheet()||(props.getProperty('SHEET_ID')?SpreadsheetApp.openById(props.getProperty('SHEET_ID')):null);
@@ -21,7 +35,7 @@ function setupStore_() {
   sheet.getSheetByName('KhoSim').getRange('B2:B').setNumberFormat('@');
   sheet.getSheetByName('YeuCau').getRange('D2:D').setNumberFormat('@');
   if(!props.getProperty('ADMIN_HASH')||!props.getProperty('ADMIN_SALT')||!props.getProperty('ADMIN_VERSION')) resetAdminPassword_();
-  console.log('Đã thiết lập. Giữ Google Sheet riêng tư; chạy resetAdminPassword_ nếu cần mật khẩu quản trị mới.');
+  console.log('Đã thiết lập. Giữ Google Sheet riêng tư; chạy resetAdminPassword nếu cần mật khẩu quản trị mới.');
 }
 function resetAdminPassword_() {
   var password=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().slice(0,8);
@@ -53,7 +67,7 @@ function replace_(name,headers,id,row){var sheet=book_().getSheetByName(name);va
 function publicSim_(r){var out={};SIM_HEADERS.forEach(function(k){out[k]=r[k];});out.id=Number(out.id);out.price=Number(out.price);out.featured=Number(out.featured)||0;return out;}
 function doGet(e) {
   var p=e&&e.parameter||{};
-  if(p.view==='admin')return HtmlService.createHtmlOutputFromFile('Admin').setTitle('Quản trị Viettel Phú Hà').addMetaTag('viewport','width=device-width, initial-scale=1');
+  if(p.view==='admin'){var admin;try{admin=HtmlService.createHtmlOutputFromFile('Admin');}catch(error){admin=HtmlService.createHtmlOutputFromFile('admin');}return admin.setTitle('Quản trị Viettel Phú Hà').addMetaTag('viewport','width=device-width, initial-scale=1');}
   var result;
   try{result=publicRead_(p);}catch(error){result={error:error.message};}
   var json=JSON.stringify(result).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');

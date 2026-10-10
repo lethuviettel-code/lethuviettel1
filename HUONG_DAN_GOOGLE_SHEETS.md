@@ -10,14 +10,14 @@ Tạo một Google Sheet mới, đặt tên **Viettel Phú Hà**. Không công k
 
 Nếu Apps Script hiện tại đã gắn với Sheet và có dữ liệu, sao lưu trước. Mã này dùng các tab `KhoSim`, `YeuCau`, `CauHinh`; không ghi đè tab có tiêu đề khác. Nếu gặp lỗi cấu trúc, dùng Sheet mới; dữ liệu cũ không được tự nhập sang.
 
-Từ Sheet, chọn **Tiện ích mở rộng → Apps Script**. Để giữ URL đã gửi, cập nhật đúng dự án đang sở hữu URL đó. Nếu dự án đó là dự án độc lập, cần gắn `SHEET_ID` trong **Cài đặt dự án → Thuộc tính tập lệnh** bằng ID Sheet (đoạn giữa `/d/` và `/edit`), rồi chạy setupStore_ để tạo các tab. Như vậy vẫn giữ được URL Apps Script hiện tại.
+Từ Sheet, chọn **Tiện ích mở rộng → Apps Script**. Để giữ URL đã gửi, cập nhật đúng dự án đang sở hữu URL đó. Nếu dự án đó là dự án độc lập, cần gắn `SHEET_ID` trong **Cài đặt dự án → Thuộc tính tập lệnh** bằng ID Sheet (đoạn giữa `/d/` và `/edit`), rồi chạy setupStore để tạo các tab. Như vậy vẫn giữ được URL Apps Script hiện tại.
 
 ## 2. Dán hai tệp mã
 
 1. Sao lưu mã cũ của Apps Script.
 2. Thay nội dung tệp **Code.gs** bằng [apps-script/Code.gs](apps-script/Code.gs).
 3. Thêm tệp **HTML** tên **Admin** rồi dán [apps-script/Admin.html](apps-script/Admin.html).
-4. Lưu. Chọn hàm **setupStore_**, bấm **Chạy**, cấp quyền Google cho chính dự án của bạn.
+4. Lưu. Chọn hàm **setupStore**, bấm **Chạy**, cấp quyền Google cho chính dự án của bạn.
 5. Hàm tạo 3 tab: **KhoSim**, **YeuCau**, **CauHinh**. Xem **Nhật ký thực thi** để lấy mật khẩu quản trị được tạo ngẫu nhiên. Lưu mật khẩu riêng; không đưa lên GitHub hoặc gửi vào chat.
 
 Không cần dán manifest để bắt đầu; nếu quản lý manifest, có mẫu `apps-script/appsscript.json`. Hàm thiết lập không nhập sim mẫu và không xóa dữ liệu có sẵn.
@@ -69,6 +69,6 @@ Google Apps Script có hạn mức và thời gian thực thi; phù hợp cửa 
 
 Giữ Sheet riêng tư. Dùng lịch sử phiên bản và tạo bản sao Sheet định kỳ; có nút xuất CSV trong admin. Xuất CSV chứa số điện thoại khách, cần lưu riêng. Không nhập thông tin giấy tờ, OTP hoặc mật khẩu khách.
 
-Quên mật khẩu admin: chủ dự án chạy **resetAdminPassword_**, lấy mật khẩu mới trong nhật ký. Việc này làm các phiên quản trị cũ hết hiệu lực. Phiên admin tối đa 30 phút; Google có thể xóa cache sớm, lúc đó đăng nhập lại. Các hàm thiết lập kết thúc `_` không cho trình duyệt gọi từ `google.script.run`.
+Quên mật khẩu admin: chủ dự án chạy **resetAdminPassword**, lấy mật khẩu mới trong nhật ký. Việc này làm các phiên quản trị cũ hết hiệu lực. Phiên admin tối đa 30 phút; Google có thể xóa cache sớm, lúc đó đăng nhập lại. Các hàm thiết lập kiểm tra tài khoản chủ dự án; khách truy cập Web App không thể thiết lập hoặc đổi mật khẩu.
 
 Bản Python/SQLite trước đây không còn phục vụ website hiện tại. Dữ liệu cũ cần xuất và chuyển riêng; không tự động xóa hay chuyển dữ liệu.

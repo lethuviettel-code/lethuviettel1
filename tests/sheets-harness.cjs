@@ -9,7 +9,8 @@ function createStore(){
  const props={getProperty:k=>properties.get(k)||null,setProperty(k,v){properties.set(k,String(v));return this;},setProperties(obj){Object.entries(obj).forEach(([k,v])=>properties.set(k,String(v)));return this;}};
  const c={get:k=>{const item=cache.get(k);if(!item||item.until<Date.now()){cache.delete(k);return null;}return item.value;},put:(k,v,ttl)=>cache.set(k,{value:String(v),until:Date.now()+ttl*1000}),remove:k=>cache.delete(k)};
  const output=value=>({value,mime:'',setMimeType(m){this.mime=m;return this;}});
- const context=vm.createContext({console:{log:s=>logs.push(s)},Date,Set,Map,JSON,Number,String,Array,Object,Math,Error,
+ const identity={active:'owner@example.test',effective:'owner@example.test'};
+ const context=vm.createContext({Session:{getActiveUser:()=>({getEmail:()=>identity.active}),getEffectiveUser:()=>({getEmail:()=>identity.effective})},console:{log:s=>logs.push(s)},Date,Set,Map,JSON,Number,String,Array,Object,Math,Error,
  SpreadsheetApp:{getActiveSpreadsheet:()=>book,openById:id=>{if(id!==book.getId())throw new Error('Wrong sheet ID');return book;},flush(){}},
  PropertiesService:{getScriptProperties:()=>props},CacheService:{getScriptCache:()=>c},
  LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},
@@ -18,7 +19,7 @@ function createStore(){
  HtmlService:{createHtmlOutputFromFile:()=>({setTitle(){return this;},addMetaTag(){return this;}})}
  });
  vm.runInContext(fs.readFileSync('apps-script/Code.gs','utf8'),context);
- function setup(){context.setupStore_();const pwd=logs.find(s=>s.startsWith('Mật khẩu quản trị mới')).split(': ').pop();return context.adminLogin(pwd).token;}
- return {context,sheets,properties,cache,logs,setup,publicRead:p=>JSON.parse(JSON.stringify(context.publicRead_(p))),post:d=>JSON.parse(context.doPost({postData:{contents:JSON.stringify(d)}}).value)};
+ function setup(){context.setupStore();const pwd=logs.find(s=>s.startsWith('Mật khẩu quản trị mới')).split(': ').pop();return context.adminLogin(pwd).token;}
+ return {context,sheets,properties,cache,logs,identity,setup,publicRead:p=>JSON.parse(JSON.stringify(context.publicRead_(p))),post:d=>JSON.parse(context.doPost({postData:{contents:JSON.stringify(d)}}).value)};
 }
 module.exports={createStore};
