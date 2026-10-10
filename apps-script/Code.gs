@@ -148,26 +148,43 @@ function setupZaloNotifications() {
   console.log('Đã chuẩn bị thông báo Zalo. Mở admin → Thông báo Zalo để nhập token và nơi nhận.');
 }
 function zaloConfig_() {
-  var props=PropertiesService.getScriptProperties();
+  var props=PropertiesService.getScriptProperties(),since=Number(props.getProperty('ZALO_ENABLED_SINCE')||0),baseline=props.getProperty('ZALO_BASELINE_LEAD')||'';
+  var raw=props.getProperty('ZALO_RECIPIENTS'),recipients=[];
+  if(raw!==null){try{recipients=JSON.parse(raw);}catch(error){throw new Error('Danh sách nhận Zalo bị lỗi. Mở admin để kiểm tra cấu hình.');}}
+  else {var legacy=props.getProperty('ZALO_CHAT_ID');if(legacy)recipients=[{chat_id:legacy,name:'Người nhận '+legacy.slice(0,40),since:since,baseline:baseline}];}
+  if(!Array.isArray(recipients))throw new Error('Danh sách nhận Zalo không hợp lệ.');
   return {enabled:props.getProperty('ZALO_ENABLED')==='1',token:props.getProperty('ZALO_BOT_TOKEN')||'',
-    chatId:props.getProperty('ZALO_CHAT_ID')||'',since:Number(props.getProperty('ZALO_ENABLED_SINCE')||0),baseline:props.getProperty('ZALO_BASELINE_LEAD')||''};
+    recipients:recipients,chatId:recipients.length?recipients[0].chat_id:'',since:since,baseline:baseline};
 }
 function zaloTriggers_(){return ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==='processZaloNotifications_';});}
 function ensureZaloTrigger_(){var list=zaloTriggers_();if(!list.length)ScriptApp.newTrigger('processZaloNotifications_').timeBased().everyMinutes(1).create();list.slice(1).forEach(function(t){ScriptApp.deleteTrigger(t);});}
 function adminZaloSettings(token,data) {
   auth_(token);
-  var cfg=zaloConfig_(),value=clean_(data.bot_token||'','Token bot',300,false),chat=clean_(data.chat_id||'','Chat ID',100,false);
+  var value=clean_(data.bot_token||'','Token bot',300,false);
   if(value&&!/^[A-Za-z0-9:_-]{20,300}$/.test(value))throw new Error('Token bot không hợp lệ. Dán token mới từ Zalo Bot Manager.');
-  if(chat&&!/^[A-Za-z0-9_-]{1,100}$/.test(chat))throw new Error('Chat ID không hợp lệ. Đây là mã nơi nhận, không phải số điện thoại.');
-  var enabled=data.enabled===true;
-  if(enabled&&(!(value||cfg.token)||!chat))throw new Error('Cần lưu token và chọn Chat ID trước khi bật thông báo.');
   return locked_(function(){
-    var props=PropertiesService.getScriptProperties();
+    var props=PropertiesService.getScriptProperties(),cfg=zaloConfig_(),input=data.recipients;
+    if(input===undefined){
+      if(cfg.recipients.length>1)throw new Error('Admin đang dùng bản cũ. Cập nhật Admin.html để giữ danh sách nhiều người nhận.');
+      var legacy=clean_(data.chat_id||'','Chat ID',100,false);input=legacy?[{chat_id:legacy,name:cfg.chatId===legacy?cfg.recipients[0].name:''}]:[];
+    }
+    if(!Array.isArray(input)||input.length>20)throw new Error('Danh sách nhận Zalo tối đa 20 người.');
+    var existing=rows_('YeuCau'),latest=existing.length?existing[existing.length-1].id:'',now=Math.floor(Date.now()/1000),seen=new Set();
+    var recipients=input.map(function(item){
+      if(!item||typeof item!=='object')throw new Error('Người nhận không hợp lệ.');
+      var chat=clean_(item.chat_id,'Chat ID',100,true),name=clean_(item.name||'','Tên người nhận',60,false);
+      if(!/^[A-Za-z0-9_-]{1,100}$/.test(chat))throw new Error('Chat ID không hợp lệ. Đây là mã nơi nhận, không phải số điện thoại.');
+      if(seen.has(chat))throw new Error('Chat ID '+chat+' bị trùng. Mỗi người chỉ cần thêm một lần.');seen.add(chat);
+      var previous=cfg.recipients.find(function(r){return r.chat_id===chat;});
+      return {chat_id:chat,name:name||'Người nhận '+chat.slice(0,40),since:previous?previous.since:now,baseline:previous?previous.baseline:latest};
+    });
+    var enabled=data.enabled===true;
+    if(enabled&&(!(value||cfg.token)||!recipients.length))throw new Error('Cần lưu token và thêm ít nhất một người nhận trước khi bật thông báo.');
     ensureSheet_(book_(),'ThongBaoZalo',ZALO_HEADERS);
     if(enabled)ensureZaloTrigger_();else zaloTriggers_().forEach(function(t){ScriptApp.deleteTrigger(t);});
-    var update={ZALO_CHAT_ID:chat,ZALO_ENABLED:enabled?'1':'0'};
+    var update={ZALO_RECIPIENTS:JSON.stringify(recipients),ZALO_CHAT_ID:recipients.length?recipients[0].chat_id:'',ZALO_ENABLED:enabled?'1':'0'};
     if(value)update.ZALO_BOT_TOKEN=value;
-    if(enabled&&!cfg.enabled){var existing=rows_('YeuCau');update.ZALO_ENABLED_SINCE=String(Math.floor(Date.now()/1000));update.ZALO_BASELINE_LEAD=existing.length?existing[existing.length-1].id:'';}
+    if(enabled&&!cfg.enabled){update.ZALO_ENABLED_SINCE=String(now);update.ZALO_BASELINE_LEAD=latest;}
     props.setProperties(update);
     return {ok:true};
   });
@@ -178,8 +195,9 @@ function zaloStatus_() {
   jobs.forEach(function(j){if(Object.prototype.hasOwnProperty.call(counts,j.status))counts[j.status]++;});
   var scheduled=false;try{scheduled=cfg.enabled&&zaloTriggers_().length>0;}catch(error){}
   return {enabled:cfg.enabled,token_configured:Boolean(cfg.token),chat_id:cfg.chatId,schedule_ready:scheduled,
+    recipients:cfg.recipients.map(function(r){return {chat_id:r.chat_id,name:r.name};}),
     counts:counts,last_error:PropertiesService.getScriptProperties().getProperty('ZALO_LAST_ERROR')||'',
-    jobs:jobs.slice(-20).reverse().map(function(j){return {lead_id:j.lead_id,status:j.status,attempts:Number(j.attempts),last_error:j.last_error,updated:Number(j.updated)};})};
+    jobs:jobs.slice(-40).reverse().map(function(j){var recipient=cfg.recipients.find(function(r){return r.chat_id===j.chat_id;});return {lead_id:j.lead_id,chat_id:j.chat_id,recipient_name:recipient?recipient.name:'Người nhận đã xóa',status:j.status,attempts:Number(j.attempts),last_error:j.last_error,updated:Number(j.updated)};})};
 }
 function adminZaloStatus(token){auth_(token);return zaloStatus_();}
 function zaloFailure_(message,retryable,ambiguous){var error=new Error(message);error.retryable=Boolean(retryable);error.ambiguous=Boolean(ambiguous);return error;}
@@ -207,24 +225,47 @@ function adminZaloChats(token) {
   auth_(token);
   var result=zaloCall_('getUpdates',{timeout:1}),updates=Array.isArray(result)?result:result?[result]:[],seen={};
   updates.forEach(function(update){
+    if(!update||typeof update!=='object')return;
     var message=update.message||update.edited_message||update,chat=message.chat;
     if(!chat||chat.id==null||typeof chat.id==='number'&&!Number.isSafeInteger(chat.id))return;
     var id=String(chat.id);if(!/^[A-Za-z0-9_-]{1,100}$/.test(id))return;
     var isGroup=chat.chat_type==='GROUP'||chat.type==='group';
-    seen[id]={id:id,name:String(chat.title||chat.name||(isGroup?'Nhóm '+id:chat.username||message.from&&message.from.display_name||'Nơi nhận '+id)).slice(0,100)};
+    seen[id]={id:id,name:String(chat.title||chat.name||(isGroup?'Nhóm '+id:chat.username||message.from&&message.from.display_name||'Người nhận '+id)).slice(0,60),type:isGroup?'group':'private'};
   });
   return {chats:Object.keys(seen).map(function(id){return seen[id];})};
 }
-function adminZaloTest(token) {
-  auth_(token);var cfg=zaloConfig_();if(!cfg.chatId)throw new Error('Lưu Chat ID trước khi gửi thử.');
-  zaloCall_('sendMessage',{chat_id:cfg.chatId,text:store_().name+'\nKết nối thông báo Zalo thành công. Khi bật thông báo, yêu cầu mới sẽ được gửi tới cuộc trò chuyện này.'});
-  return {ok:true};
+function adminZaloTest(token,chatId) {
+  auth_(token);var cfg=zaloConfig_();
+  if(chatId===undefined&&cfg.recipients.length===1)chatId=cfg.chatId;
+  var recipient=cfg.recipients.find(function(r){return r.chat_id===chatId;});
+  if(!recipient)throw new Error('Lưu người nhận và chọn đúng người cần gửi thử.');
+  zaloCall_('sendMessage',{chat_id:recipient.chat_id,text:store_().name+'\nKết nối thông báo Zalo thành công. Khi bật thông báo, yêu cầu mới sẽ được gửi tới cuộc trò chuyện này.'});
+  return {ok:true,name:recipient.name};
+}
+function zaloJobKey_(leadId,chatId){return JSON.stringify([String(leadId),String(chatId)]);}
+function zaloRecipientAllows_(recipient,lead,leads){
+  var boundary=recipient.baseline?leads.findIndex(function(l){return l.id===recipient.baseline;}):-1;
+  return boundary>=0?leads.findIndex(function(l){return l.id===lead.id;})>boundary:Number(lead.created)>=Number(recipient.since||0);
+}
+function replaceZaloJob_(job){
+  var sheet=book_().getSheetByName('ThongBaoZalo'),values=sheet.getDataRange().getValues(),chatColumn=ZALO_HEADERS.indexOf('chat_id');
+  var index=values.findIndex(function(r,i){return i>0&&String(r[0])===String(job.lead_id)&&String(r[chatColumn])===String(job.chat_id);});
+  if(index<0)throw new Error('Không tìm thấy thông báo của người nhận.');
+  sheet.getRange(index+1,1,1,ZALO_HEADERS.length).setNumberFormat('@').setValues([ZALO_HEADERS.map(function(k){return safeCell_(job[k]===undefined?'':job[k]);})]);SpreadsheetApp.flush();
 }
 function enqueueZalo_(lead) {
-  var cfg=zaloConfig_();if(!cfg.enabled||!cfg.token||!cfg.chatId)return;
+  var cfg=zaloConfig_();if(!cfg.enabled||!cfg.token||!cfg.recipients.length)return;
   ensureSheet_(book_(),'ThongBaoZalo',ZALO_HEADERS);
-  if(rows_('ThongBaoZalo').some(function(j){return j.lead_id===lead.id;}))return;
-  append_('ThongBaoZalo',ZALO_HEADERS,{lead_id:lead.id,status:'pending',attempts:0,next_try:0,last_error:'',updated:Math.floor(Date.now()/1000),lease:'',chat_id:cfg.chatId});
+  var jobs=rows_('ThongBaoZalo'),leads=rows_('YeuCau'),seen={};jobs.forEach(function(j){seen[zaloJobKey_(j.lead_id,j.chat_id)]=true;});
+  var missing=cfg.recipients.filter(function(r){return !seen[zaloJobKey_(lead.id,r.chat_id)]&&zaloRecipientAllows_(r,lead,leads);});
+  if(!missing.length)return;
+  // Write the fan-out in one batch so the customer does not wait on one Sheet write per person.
+  var sheet=book_().getSheetByName('ThongBaoZalo'),start=sheet.getLastRow()+1,now=Math.floor(Date.now()/1000);
+  capacity_(sheet,start+missing.length-1);
+  sheet.getRange(start,1,missing.length,ZALO_HEADERS.length).setNumberFormat('@').setValues(missing.map(function(r){
+    var job={lead_id:lead.id,status:'pending',attempts:0,next_try:0,last_error:'',updated:now,lease:'',chat_id:r.chat_id};
+    return ZALO_HEADERS.map(function(k){return safeCell_(job[k]);});
+  }));SpreadsheetApp.flush();
 }
 function zaloText_(lead) {
   var cfg=store_(),branch=cfg.branches.find(function(b){return b.id===lead.branch;});
@@ -239,23 +280,24 @@ function zaloText_(lead) {
 }
 function claimZaloJob_() {
   return locked_(function(){
-    var cfg=zaloConfig_();if(!cfg.enabled||!cfg.token||!cfg.chatId)return null;
+    var cfg=zaloConfig_();if(!cfg.enabled||!cfg.token||!cfg.recipients.length)return null;
     ensureSheet_(book_(),'ThongBaoZalo',ZALO_HEADERS);
     var jobs=rows_('ThongBaoZalo'),leads=rows_('YeuCau'),now=Math.floor(Date.now()/1000),seen={};
-    jobs.forEach(function(j){seen[j.lead_id]=true;});
+    jobs.forEach(function(j){seen[zaloJobKey_(j.lead_id,j.chat_id)]=true;});
     // Recover a queue write failure after the consultation itself was saved.
     var boundary=cfg.baseline?leads.findIndex(function(l){return l.id===cfg.baseline;}):-1;
     var recent=boundary>=0?leads.slice(boundary+1):leads.filter(function(l){return Number(l.created)>=cfg.since;});
-    recent.filter(function(l){return !seen[l.id];}).slice(0,10).forEach(enqueueZalo_);
+    recent.filter(function(l){return cfg.recipients.some(function(r){return !seen[zaloJobKey_(l.id,r.chat_id)]&&zaloRecipientAllows_(r,l,leads);});}).slice(0,10).forEach(enqueueZalo_);
     jobs=rows_('ThongBaoZalo');
     for(var i=0;i<jobs.length;i++){
       var job=jobs[i];
-      if(job.status==='sending'&&Number(job.next_try)<=now){job.status='uncertain';job.last_error='Lần gửi trước bị gián đoạn. Kiểm tra Zalo trước khi gửi lại.';job.updated=now;replace_('ThongBaoZalo',ZALO_HEADERS,job.lead_id,job);}
+      if(job.status==='sending'&&Number(job.next_try)<=now){job.status='uncertain';job.last_error='Lần gửi trước bị gián đoạn. Kiểm tra Zalo trước khi gửi lại.';job.updated=now;replaceZaloJob_(job);}
       if(job.status!=='pending'||Number(job.next_try)>now)continue;
       var lead=leads.find(function(l){return l.id===job.lead_id;});
-      if(job.chat_id!==cfg.chatId||!lead){job.status='cancelled';job.last_error=!lead?'Yêu cầu khách đã được xóa.':'Nơi nhận đã thay đổi. Không chuyển thông tin cũ sang nơi mới.';job.updated=now;replace_('ThongBaoZalo',ZALO_HEADERS,job.lead_id,job);continue;}
+      var recipient=cfg.recipients.find(function(r){return r.chat_id===job.chat_id;});
+      if(!lead||!recipient||!zaloRecipientAllows_(recipient,lead,leads)){job.status='cancelled';job.last_error=!lead?'Yêu cầu khách đã được xóa.':'Người nhận đã đổi. Không gửi thông tin cũ tới người mới thêm.';job.updated=now;replaceZaloJob_(job);continue;}
       job.status='sending';job.attempts=Number(job.attempts)+1;job.next_try=now+600;job.lease=Utilities.getUuid();job.updated=now;
-      replace_('ThongBaoZalo',ZALO_HEADERS,job.lead_id,job);
+      replaceZaloJob_(job);
       return {job:job,lead:lead};
     }
     return null;
@@ -269,26 +311,29 @@ function processZaloNotifications_() {
     // No spreadsheet lock is held while waiting on Zalo's network response.
     try{zaloCall_('sendMessage',{chat_id:claimed.job.chat_id,text:zaloText_(claimed.lead)});sent++;}catch(error){failure=error;}
     locked_(function(){
-      var fresh=rows_('ThongBaoZalo').find(function(j){return j.lead_id===claimed.job.lead_id;});
+      var fresh=rows_('ThongBaoZalo').find(function(j){return j.lead_id===claimed.job.lead_id&&j.chat_id===claimed.job.chat_id;});
       if(!fresh||fresh.lease!==claimed.job.lease)return;
       var now=Math.floor(Date.now()/1000);
       fresh.status=!failure?'sent':failure.ambiguous?'uncertain':failure.retryable&&Number(fresh.attempts)<4?'pending':'failed';
       fresh.last_error=failure?failure.message:'';fresh.updated=now;fresh.next_try=fresh.status==='pending'?now+60*Math.pow(2,Number(fresh.attempts)-1):0;fresh.lease='';
-      replace_('ThongBaoZalo',ZALO_HEADERS,fresh.lead_id,fresh);
+      replaceZaloJob_(fresh);
       PropertiesService.getScriptProperties().setProperty('ZALO_LAST_ERROR',failure?failure.message:'');
     });
   }
   return {sent:sent};
 }
-function adminZaloRetry(token,id,confirmUncertain) {
+function adminZaloRetry(token,id,confirmUncertain,chatId) {
   auth_(token);
   return locked_(function(){
-    var job=rows_('ThongBaoZalo').find(function(j){return j.lead_id===id;}),cfg=zaloConfig_();
+    var matches=rows_('ThongBaoZalo').filter(function(j){return j.lead_id===id&&(chatId===undefined||j.chat_id===chatId);}),cfg=zaloConfig_();
     if(!cfg.enabled)throw new Error('Bật thông báo Zalo trước khi gửi lại.');
+    if(matches.length!==1)throw new Error('Chọn đúng người nhận cần gửi lại thông báo.');
+    var job=matches[0];
     if(!job||['failed','uncertain'].indexOf(job.status)<0)throw new Error('Chỉ gửi lại thông báo lỗi hoặc chưa xác nhận.');
     if(job.status==='uncertain'&&confirmUncertain!==true)throw new Error('Kiểm tra Zalo trước khi gửi lại để tránh nhận trùng.');
-    if(job.chat_id!==cfg.chatId)throw new Error('Nơi nhận đã đổi. Không gửi thông tin cũ sang nơi nhận mới.');
+    var recipient=cfg.recipients.find(function(r){return r.chat_id===job.chat_id;}),leads=rows_('YeuCau'),lead=leads.find(function(l){return l.id===id;});
+    if(!recipient||!lead||!zaloRecipientAllows_(recipient,lead,leads))throw new Error('Người nhận đã đổi. Không gửi thông tin cũ tới người mới thêm.');
     job.status='pending';job.attempts=0;job.next_try=0;job.last_error='';job.lease='';job.updated=Math.floor(Date.now()/1000);
-    replace_('ThongBaoZalo',ZALO_HEADERS,job.lead_id,job);return {ok:true};
+    replaceZaloJob_(job);return {ok:true};
   });
 }

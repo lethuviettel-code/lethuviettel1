@@ -7,7 +7,7 @@ Website tĩnh + Google Apps Script + Google Sheets. Không cần VPS.
 - Giao diện hiển thị ngay từ HTML; kho sim và cấu hình cập nhật ở nền. Nút **Mua sim** mở biểu mẫu ngay trên trang, cả trên điện thoại.
 - Sheet `KhoSim` lưu kho; sheet `YeuCau` nhận yêu cầu mới; `CauHinh` lưu thông tin cửa hàng.
 - Admin trên Apps Script có mật khẩu, nhập CSV hoặc bảng Excel, sửa giá/tình trạng và ghi chú gọi lại.
-- Bot Zalo gửi thông báo yêu cầu mới cho quản lý qua lịch Apps Script; cấu hình token/nơi nhận riêng trong admin, có trạng thái gửi và thử lại.
+- Bot Zalo gửi riêng yêu cầu mới cho tối đa 20 người quản lý; thêm/xóa người trong admin, gửi thử và xử lý lỗi riêng cho từng người. Token được giữ riêng trong Apps Script.
 - Không có đăng nhập khách hoặc thanh toán.
 
 **Thiết lập lần đầu theo [HUONG_DAN_GOOGLE_SHEETS.md](HUONG_DAN_GOOGLE_SHEETS.md).** URL Apps Script đã được điền trong `site-config.js`. Nếu kho sim đã hiện và admin đã hoạt động, giữ nguyên Sheet và mật khẩu, cập nhật tính năng bot theo hướng dẫn bên dưới. Vào **Cấu hình cửa hàng**, lưu **Chính sách sử dụng tên/số điện thoại để gọi tư vấn** để bật gửi yêu cầu. Không đưa Sheet hoặc mật khẩu quản trị ra công khai.

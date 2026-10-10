@@ -75,3 +75,76 @@ test('Bot chat discovery handles both result shapes, rejects unsafe numeric IDs 
  s.controls.fetch=()=>botResponse();s.context.adminZaloTest(s.token);assert.ok(!s.requests.at(-1).options.payload.includes('0988123456'));
  s.context.adminZaloSettings(s.token,{chat_id:'chat-fixture-1',enabled:true});s.context.adminZaloSettings(s.token,{chat_id:'chat-fixture-1',enabled:false});assert.equal(s.triggers.length,0);s.post(lead(1));s.context.processZaloNotifications_();assert.equal(s.context.rows_('ThongBaoZalo').length,0);
 });
+
+const recipients=[{chat_id:'private-alice',name:'Chị Thu'},{chat_id:'private-bob',name:'Anh Dũng'},{chat_id:'private-carol',name:'Chị Hà'}];
+function connectPeople(s,list=recipients){s.context.adminZaloSettings(s.token,{bot_token:botToken,recipients:list,enabled:true});s.controls.fetch=()=>botResponse();}
+const sentTo=s=>s.requests.filter(r=>r.url.endsWith('/sendMessage')).map(r=>JSON.parse(r.options.payload).chat_id);
+
+test('A consultation sends privately to each person; a failed recipient never changes another job or resends successful people',()=>{
+ const s=fixture();connectPeople(s);const request=lead(1),saved=s.post(request);s.post(request);
+ assert.equal(s.context.rows_('ThongBaoZalo').length,3);assert.equal(s.requests.length,0);
+ s.controls.fetch=(_,options)=>JSON.parse(options.payload).chat_id==='private-bob'?botResponse({ok:false,error_code:403},403):botResponse();
+ assert.equal(s.context.processZaloNotifications_().sent,2);
+ assert.deepEqual(sentTo(s),recipients.map(r=>r.chat_id));
+ const status=s.context.adminZaloStatus(s.token);assert.equal(status.counts.sent,2);assert.equal(status.counts.failed,1);
+ assert.equal(status.jobs.find(j=>j.chat_id==='private-bob').recipient_name,'Anh Dũng');
+ assert.throws(()=>s.context.adminZaloRetry(s.token,saved.id,false),/Chọn đúng người/);
+ assert.throws(()=>s.context.adminZaloRetry(s.token,saved.id,false,'private-alice'),/Chỉ gửi lại/);
+ assert.throws(()=>s.context.adminZaloRetry(s.token,saved.id,false,'unknown'),/Chọn đúng người/);
+ s.controls.fetch=()=>botResponse();s.context.adminZaloRetry(s.token,saved.id,false,'private-bob');s.context.processZaloNotifications_();s.post(request);s.context.processZaloNotifications_();
+ assert.deepEqual(sentTo(s),['private-alice','private-bob','private-carol','private-bob']);assert.equal(s.context.adminZaloStatus(s.token).counts.sent,3);
+ assert.ok(s.requests.every(r=>r.lockDepth===0));assert.ok(!JSON.stringify(s.publicRead({action:'settings'})).includes('private-alice'));
+});
+
+test('Recipient-specific rate limits and ambiguous replies preserve independent delivery and retry guards',()=>{
+ const s=fixture();connectPeople(s);const saved=s.post(lead(1));let aliceAttempts=0;
+ s.controls.fetch=(_,options)=>{const id=JSON.parse(options.payload).chat_id;if(id==='private-alice'&&++aliceAttempts===1)return botResponse({ok:false,error_code:429},429);if(id==='private-bob')throw new Error('Response lost');return botResponse();};
+ s.context.processZaloNotifications_();let status=s.context.adminZaloStatus(s.token);assert.equal(status.counts.pending,1);assert.equal(status.counts.uncertain,1);assert.equal(status.counts.sent,1);
+ s.advance(61000);s.context.processZaloNotifications_();assert.deepEqual(sentTo(s),['private-alice','private-bob','private-carol','private-alice']);
+ assert.throws(()=>s.context.adminZaloRetry(s.token,saved.id,false,'private-bob'),/Kiểm tra/);
+ s.controls.fetch=()=>botResponse();s.context.adminZaloRetry(s.token,saved.id,true,'private-bob');s.context.processZaloNotifications_();
+ status=s.context.adminZaloStatus(s.token);assert.equal(status.counts.sent,3);assert.equal(status.jobs.find(j=>j.chat_id==='private-carol').attempts,1);
+});
+
+test('New recipients get future consultations only; removed or re-added people cannot receive old queued data',()=>{
+ const s=fixture();const historical=s.post(lead(1));connectPeople(s,[recipients[0]]);const beforeAddition=s.post(lead(1));
+ s.context.adminZaloSettings(s.token,{recipients:[recipients[0],{...recipients[1],since:0,baseline:''}],enabled:true});s.context.processZaloNotifications_();
+ assert.deepEqual(sentTo(s),['private-alice']);assert.ok(!s.requests[0].options.payload.includes(historical.id));
+ assert.equal(s.context.rows_('ThongBaoZalo').filter(j=>j.lead_id===beforeAddition.id).length,1);
+ const future=s.post(lead(1));assert.equal(s.context.rows_('ThongBaoZalo').filter(j=>j.lead_id===future.id).length,2);
+ s.context.adminZaloSettings(s.token,{recipients:[recipients[1]],enabled:true});s.context.processZaloNotifications_();
+ assert.deepEqual(sentTo(s),['private-alice','private-bob']);assert.equal(s.context.rows_('ThongBaoZalo').find(j=>j.lead_id===future.id&&j.chat_id==='private-alice').status,'cancelled');
+ s.context.adminZaloSettings(s.token,{recipients:[recipients[0],recipients[1]],enabled:true});s.context.processZaloNotifications_();assert.equal(s.requests.length,2);
+ const latest=s.post(lead(1));s.context.processZaloNotifications_();assert.equal(s.context.rows_('ThongBaoZalo').filter(j=>j.lead_id===latest.id&&j.status==='sent').length,2);
+});
+
+test('Existing single-recipient properties and queue upgrade without changing Sheet headers or notifying a new person about old leads',()=>{
+ const s=fixture();connectBot(s);s.properties.delete('ZALO_RECIPIENTS');const old=s.post(lead(1));const headers=JSON.stringify(s.sheets.get('ThongBaoZalo').cells[0]);
+ assert.equal(s.context.adminZaloStatus(s.token).recipients[0].chat_id,'chat-fixture-1');
+ s.context.adminZaloSettings(s.token,{bot_token:'',recipients:[{chat_id:'chat-fixture-1',name:'Quản lý cũ'},recipients[0]],enabled:true});
+ assert.equal(s.properties.get('ZALO_BOT_TOKEN'),botToken);assert.equal(JSON.stringify(s.sheets.get('ThongBaoZalo').cells[0]),headers);
+ assert.throws(()=>s.context.adminZaloSettings(s.token,{chat_id:'chat-fixture-1',enabled:true}),/Admin đang dùng bản cũ/);
+ assert.throws(()=>s.context.adminZaloTest(s.token),/chọn đúng người/);assert.equal(s.context.adminZaloStatus(s.token).recipients.length,2);
+ s.context.processZaloNotifications_();assert.deepEqual(sentTo(s),['chat-fixture-1']);assert.equal(s.context.rows_('ThongBaoZalo').filter(j=>j.lead_id===old.id).length,1);
+ s.post(lead(1));s.context.processZaloNotifications_();assert.deepEqual(sentTo(s),['chat-fixture-1','chat-fixture-1','private-alice']);
+ s.context.adminZaloTest(s.token,'private-alice');assert.equal(sentTo(s).at(-1),'private-alice');
+ assert.throws(()=>s.context.adminZaloTest(s.token,'not-configured'),/Lưu người nhận/);
+});
+
+test('Fan-out repairs missing recipient jobs after a write failure without duplicates or including newly added people',()=>{
+ const s=fixture();connectPeople(s,recipients.slice(0,2));s.controls.queueWriteFailure=true;const request=lead(1),saved=s.post(request);
+ assert.equal(saved.received,true);assert.equal(s.publicRead({action:'receipt',key:request.request_key}).received,true);
+ s.controls.queueWriteFailure=false;s.context.enqueueZalo_(s.context.rows_('YeuCau')[0]);s.sheets.get('ThongBaoZalo').cells.pop();
+ s.context.adminZaloSettings(s.token,{recipients,enabled:true});s.context.processZaloNotifications_();s.context.processZaloNotifications_();
+ assert.deepEqual(sentTo(s),['private-alice','private-bob']);assert.equal(s.context.rows_('ThongBaoZalo').length,2);
+});
+
+test('Recipient validation is atomic, caps the list at 20 and the worker limits total messages per run',()=>{
+ const s=fixture();connectPeople(s);const before=s.properties.get('ZALO_RECIPIENTS');
+ for(const bad of [null,{},[recipients[0],recipients[0]],[{chat_id:'bad/id'}],Array.from({length:21},(_,i)=>({chat_id:'person-'+i}))])assert.throws(()=>s.context.adminZaloSettings(s.token,{recipients:bad,enabled:true}));
+ assert.throws(()=>s.context.adminZaloSettings(s.token,{recipients:[],enabled:true}),/ít nhất một/);assert.equal(s.properties.get('ZALO_RECIPIENTS'),before);
+ const people=Array.from({length:20},(_,i)=>({chat_id:'person-'+i,name:'Nhân viên '+i}));s.context.adminZaloSettings(s.token,{recipients:people,enabled:true});s.post(lead(1));
+ assert.equal(s.context.processZaloNotifications_().sent,5);assert.equal(s.context.adminZaloStatus(s.token).counts.pending,15);
+ for(let i=0;i<3;i++){s.advance(60000);s.context.processZaloNotifications_();}assert.equal(s.context.adminZaloStatus(s.token).counts.sent,20);assert.equal(new Set(sentTo(s)).size,20);
+ s.context.adminZaloSettings(s.token,{recipients:[],enabled:false});assert.equal(s.triggers.length,0);assert.equal(s.context.adminZaloStatus(s.token).recipients.length,0);
+});
