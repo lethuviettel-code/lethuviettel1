@@ -1,1 +1,15 @@
-{"name":"viettel-phu-ha","version":"1.0.0","private":true,"scripts":{"start":"python3 -m http.server 3000 --bind 0.0.0.0","test":"node --test tests/*.test.cjs"},"devDependencies":{"playwright":"1.56.1"}}
+{
+  "name": "viettel-phu-ha",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": ".venv/bin/gunicorn --bind 0.0.0.0:3000 --workers 2 --threads 4 --timeout 60 server:app",
+    "dev": ".venv/bin/python server.py serve",
+    "test:api": ".venv/bin/python -m unittest discover -s tests -p \"test_*.py\"",
+    "test:browser": "node --test tests/browser.test.cjs",
+    "test": "npm run test:api && npm run test:browser"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
