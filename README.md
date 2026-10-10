@@ -23,10 +23,19 @@ Kiểm thử Playwright dùng Chromium tại `/usr/bin/chromium`. Bộ kiểm th
 
 ## Phạm vi hiện tại
 
-- Số sim, giá, tồn kho, đánh giá và thông tin liên hệ là nội dung minh họa theo ảnh mẫu; cần thay bằng thông tin được cửa hàng xác nhận.
+- Số sim, giá, tồn kho, đánh giá là nội dung minh họa theo ảnh mẫu; cần thay bằng thông tin được cửa hàng xác nhận.
 - Biểu mẫu kiểm tra thông tin tại trình duyệt và thông báo rõ yêu cầu chưa gửi. Chưa có backend, thanh toán hoặc dịch vụ nhận đơn.
 - Lưu sim dùng localStorage. Bộ lọc phong thủy chỉ minh họa dữ liệu ngũ hành, không phải công cụ luận giải.
 - Banner, thẻ sim và bản đồ dùng đồ họa minh họa cục bộ, không phải ảnh nhân viên/cảnh quan gốc. Bản đồ dẫn sang Google Maps tìm kiếm khu vực.
 - Để dùng thực tế: cung cấp tài sản hình ảnh có quyền sử dụng, xác minh nội dung, kết nối API kho sim và dịch vụ nhận đơn/tư vấn.
 
 Mỗi tác vụ đám mây đã được cô lập: sử dụng checkout hiện có, không tạo Git worktree trừ khi người dùng yêu cầu.
+
+## Thông tin cửa hàng
+
+- Tên: Viettel Phú Hà
+- Hotline: 0344.639.666
+- Email: thuntlpto.9x@gmail.com
+- CS1: KCN Phú Hà, thị xã Phú Thọ, Phú Thọ
+- CS2: Thanh Miếu, Việt Trì, Phú Thọ
+- CS3: Cao Mại, Lâm Thao, Phú Thọ
