@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright');
 const root=__dirname,shell=fs.readFileSync(path.join(root,'shell.html'),'utf8');
-const publicFiles=new Set(['app.js','styles.css','favicon.svg','hero.webp','promo.webp','cua-hang-1.webp','cua-hang-2.webp','cua-hang-3.webp','cua-hang-4.webp','cua-hang-5.webp','cua-hang-6.webp','og-image.png','apple-touch-icon.png','icon-192.png','icon-512.png','site.webmanifest']);
+const publicFiles=new Set(['app.js','styles.css','theme-red.css','reference-hero-right.webp','reference-catalog-right.webp','reference-feng-right.webp','reference-contact-right.webp','reference-sim-product.webp','reference-gift.webp','reference-support.webp','reference-viettri.webp','favicon.svg','hero.webp','promo.webp','cua-hang-1.webp','cua-hang-2.webp','cua-hang-3.webp','cua-hang-4.webp','cua-hang-5.webp','cua-hang-6.webp','og-image.png','apple-touch-icon.png','icon-192.png','icon-512.png','site.webmanifest']);
 const mime={'.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.webmanifest':'application/manifest+json'};
 const pages=[['/','index.html'],['/kho-sim.html','kho-sim.html'],['/sim-phong-thuy.html','sim-phong-thuy.html'],['/lien-he.html','lien-he.html'],['/chinh-sach.html','chinh-sach.html'],['/yeu-thich.html','yeu-thich.html'],['/sim.html','sim.html'],['/khong-ton-tai.html','404.html']];
 const server=http.createServer((req,res)=>{

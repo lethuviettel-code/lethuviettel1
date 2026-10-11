@@ -70,6 +70,81 @@ const money = n => Number(n).toLocaleString('vi-VN') + ' đ';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const digits = n => String(n).replace(/\D/g, '');
 const formatted = n => digits(n).replace(/^(\d{4})(\d{3})(\d{3})$/, '$1.$2.$3');
+/* Ký tự * đại diện cho bất kỳ dãy số ở đầu/cuối, không phải tìm chứa chuỗi.
+   098* => bắt đầu bằng 098; *999 => kết thúc bằng 999;
+   098*999 => vừa bắt đầu bằng 098 vừa kết thúc bằng 999. */
+function parseSimPattern(value) {
+  const q=String(value||'').trim();
+  let m=q.match(/^(\d+)\*$/);
+  if(m)return {prefix:m[1],suffix:'',kind:'prefix'};
+  m=q.match(/^\*(\d+)$/);
+  if(m)return {prefix:'',suffix:m[1],kind:'suffix'};
+  m=q.match(/^(\d+)\*(\d+)$/);
+  if(m)return {prefix:m[1],suffix:m[2],kind:'both'};
+  return null;
+}
+const wildcardScans=new Map();
+const WILDCARD_RESULT_SIZE=24;
+const WILDCARD_FETCH_SIZE=100;
+/* Backend Sheets hiện có tìm q chứa dãy số và lọc prefix; không mặc định hỗ trợ suffix.
+   Quét các trang q chứa đuôi, kiểm tra endsWith thực sự trên trình duyệt.
+   Chỉ quét đến khi đủ một trang + một kết quả để bật trang tiếp theo;
+   dữ liệu đã quét được nhớ lại khi chuyển trang, tránh tải lại. */
+async function catalogSims(path,sourceParams) {
+  const params=new URLSearchParams(sourceParams);
+  const pattern=parseSimPattern(params.get('q'));
+  if(!pattern) { params.set('size',WILDCARD_RESULT_SIZE);return api('/api/sims?'+params); }
+  if(!pattern.suffix){
+    params.delete('q');params.set('prefix',pattern.prefix);
+    params.set('size',WILDCARD_RESULT_SIZE);
+    return api('/api/sims?'+params);
+  }
+  const page=Math.max(1,Math.min(9999,parseInt(params.get('page')||'1',10)||1));
+  params.delete('page');params.set('q',pattern.suffix);
+  if(pattern.prefix)params.set('prefix',pattern.prefix);
+  params.set('size',WILDCARD_FETCH_SIZE);
+  const key=path+'?'+params.toString();
+  let scan=wildcardScans.get(key);
+  if(!scan){
+    scan={matches:[],seen:new Set(),nextPage:1,done:false,loading:null};
+    wildcardScans.set(key,scan);
+    if(wildcardScans.size>25)wildcardScans.delete(wildcardScans.keys().next().value);
+  }
+  const requested=page*WILDCARD_RESULT_SIZE+1;
+  async function scanUntilReady(){
+    while(scan.matches.length<requested&&!scan.done){
+      const query=new URLSearchParams(params);query.set('page',String(scan.nextPage));
+      const result=await api('/api/sims?'+query);
+      const items=result.items||[];
+      const before=scan.seen.size;
+      for(const item of items){
+        const n=digits(item.number),id=item.id===undefined?n:String(item.id);
+        if(scan.seen.has(id))continue;
+        scan.seen.add(id);
+        if(n.endsWith(pattern.suffix)&&(!pattern.prefix||n.startsWith(pattern.prefix)))scan.matches.push(item);
+      }
+      const responseSize=Math.max(1,Number(result.size)||WILDCARD_FETCH_SIZE);
+      const responsePage=Math.max(1,Number(result.page)||scan.nextPage);
+      const total=Number(result.total);
+      scan.nextPage++;
+      // Bảo vệ nếu bộ lọc Sheets trả cùng một trang liên tục.
+      if(!items.length||(scan.nextPage>2&&scan.seen.size===before)||
+         (Number.isFinite(total)&&responsePage*responseSize>=total)||
+         (Number.isFinite(total)&&total===0))scan.done=true;
+    }
+  }
+  // Đồng bộ lượt tìm kế tiếp nếu người dùng đổi trang rất nhanh.
+  if(scan.loading)await scan.loading;
+  if(!scan.done&&scan.matches.length<requested){
+    scan.loading=scanUntilReady();
+    try{await scan.loading;}finally{scan.loading=null;}
+  }
+  const begin=(page-1)*WILDCARD_RESULT_SIZE;
+  return {items:scan.matches.slice(begin,begin+WILDCARD_RESULT_SIZE),
+    page,size:WILDCARD_RESULT_SIZE,total:scan.matches.length,
+    wildcard:true,complete:scan.done,hasNext:scan.matches.length>begin+WILDCARD_RESULT_SIZE};
+}
+
 const statuses = {available:'Còn hàng',reserved:'Đang giữ chỗ',sold:'Đã bán'};
 let config={...window.STORE_CONFIG}, settingsLoading=true, connectionNotice='', catalogTypes=[], renderVersion=0;
 const simModels=new Map(), pageModels=new Map(), inFlight=new Map(), requestKeys=new WeakMap();
@@ -125,13 +200,13 @@ function header() {
  <a class="hotline" href="${phoneHref()}" aria-label="Gọi hotline ${esc(config.phone)}">${ic('phone')}<span><small>Hotline tư vấn</small><b>${esc(config.phone)}</b></span></a>
  <div class="header-tools"><a href="${toHref('/lien-he')}" class="quick-support">${ic('headset')}<span>Hỗ trợ nhanh</span></a><button type="button" class="icon-button" data-search aria-label="Tìm sim">${ic('search')}</button><a class="icon-button saved-shortcut" href="${toHref('/yeu-thich')}" aria-label="Sim đã lưu">${ic('heart')}<span class="saved-count">${favorites.length}</span></a><button type="button" class="menu-toggle icon-button" aria-label="Mở menu" aria-expanded="false" aria-controls="main-nav">${ic('menu')}</button></div></div></header>`;
 }
-function searchForm(value='') {return `<form class="search" role="search" action="${toHref('/kho-sim')}" method="get">${ic('search')}<input name="q" type="search" inputmode="numeric" aria-label="Tìm số sim" placeholder="Tìm sim số đẹp (ví dụ: 0868, 999, 6868...)" maxlength="30" value="${esc(value)}" autocomplete="off"><button>${routePath()==='/'?'Tìm sim ngay':'Tìm kiếm'}</button></form>`;}
+function searchForm(value='') {return `<form class="search" role="search" action="${toHref('/kho-sim')}" method="get">${ic('search')}<input name="q" type="search" inputmode="search" aria-label="Tìm số sim" placeholder="VD: 098* (đầu số), *999 (đuôi số)" maxlength="30" value="${esc(value)}" autocomplete="off"><button>${routePath()==='/'?'Tìm sim ngay':'Tìm kiếm'}</button></form>`;}
 const simNumber=n=>{const f=formatted(n);return esc(f.slice(0,-3))+'<em>'+esc(f.slice(-3))+'</em>';};
 const SIM_PATH='M179 100H343L405 162V416a24 24 0 0 1-24 24H179a24 24 0 0 1-24-24V124a24 24 0 0 1 24-24Z';
 const simCardArt=(label='')=>`<path d="${SIM_PATH}" fill="#e4002b"/><path d="${SIM_PATH}" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2"/><rect x="195" y="190" width="120" height="96" rx="14" fill="#f3dfae"/><path d="M195 222h120M195 254h120M243 190v96M267 190v96" stroke="#b58a2e" stroke-width="3" fill="none"/><rect x="243" y="222" width="24" height="32" fill="#e4c880" stroke="#b58a2e" stroke-width="3"/>${label}`;
 const ART_FONT="Bricolage Grotesque,Be Vietnam Pro,Arial,sans-serif";
 function productArt(f){const head=f.slice(0,-3),tail=f.slice(-3);return `<svg viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" focusable="false"><rect width="400" height="500" fill="#062959"/><text x="-14" y="190" font-size="190" font-weight="800" fill="#fff" fill-opacity=".055" letter-spacing="-10" font-family="${ART_FONT}">${esc(digits(f).slice(-4))}</text><g transform="translate(-20 -8) scale(.86) rotate(-7 280 270)">${simCardArt()}</g><text x="200" y="468" text-anchor="middle" font-size="34" font-weight="800" fill="#fff" letter-spacing="-1" font-family="${ART_FONT}">${esc(head)}<tspan fill="#f8cb67">${esc(tail)}</tspan></text></svg>`;}
-function homeHero() {return `<section class="hero home-hero" aria-labelledby="hero-title"><div class="hero-photo" role="img" aria-label="Hình ảnh truyền thông Viettel và cảnh đẹp Việt Trì"></div><div class="container hero-grid"><div class="hero-copy"><p class="hero-eyebrow">VIETTEL PHÚ HÀ – VIỆT TRÌ, PHÚ THỌ</p><h1 id="hero-title">Sim số đẹp – Kết nối thành công</h1><p class="lede">Kho sim phong thủy · Sim thần tài · Sim lộc phát tại Phú Thọ</p>${searchForm('')}<div class="hero-quick"><span>Tìm kiếm nhanh:</span>${[['Đầu số','/kho-sim?prefix=086'],['Đuôi số','/kho-sim?q=888'],['Giá tiền','/kho-sim?max_price=5000000'],['Loại sim','/kho-sim'],['Phong thủy','/sim-phong-thuy']].map(([t,u])=>link(u,t+'⌄')).join('')}</div></div></div></section>`;}
+function homeHero() {return `<section class="hero home-hero" aria-labelledby="hero-title"><div class="hero-photo" role="img" aria-label="Hình ảnh truyền thông Viettel và cảnh đẹp Việt Trì"></div><div class="container hero-grid"><div class="hero-copy"><p class="hero-eyebrow">VIETTEL PHÚ HÀ – VIỆT TRÌ, PHÚ THỌ</p><h1 id="hero-title">Sim số đẹp – Kết nối thành công</h1><p class="lede">Kho sim phong thủy · Sim thần tài · Sim lộc phát tại Phú Thọ</p>${searchForm('')}<div class="hero-quick"><span>Tìm kiếm nhanh:</span>${[['Đầu số','/kho-sim?q=098*'],['Đuôi số','/kho-sim?q=*999'],['Giá tiền','/kho-sim?max_price=5000000'],['Loại sim','/kho-sim'],['Phong thủy','/sim-phong-thuy']].map(([t,u])=>link(u,t+'⌄')).join('')}</div></div></div></section>`;}
 function crumbs(items) {return `<nav class="breadcrumb" aria-label="Đường dẫn"><ol>${items.map(([h,t],i)=>`<li>${h&&i<items.length-1?link(h,t):`<span aria-current="page">${t}</span>`}</li>`).join('')}</ol></nav>`;}
 function pageHead(title,sub,items,withSearch=false) {const feng=title.includes('phong thủy'),contact=title.startsWith('Liên hệ');return `<section class="page-head ${feng?'feng-head':contact?'contact-head':'catalog-head'}"><div class="container page-head-inner"><div class="page-head-copy">${crumbs(items)}<h1>${title}</h1>${sub?`<p class="lede">${sub}</p>`:''}${withSearch?searchForm(new URLSearchParams(routeSearch()).get('q')||''):''}</div><div class="page-head-art" aria-hidden="true"></div></div></section>`;}
 function card(s,detail=true) {const available=s.status==='available',saved=favorites.includes(s.id),f=formatted(s.number);return `<article class="sim-card"><button type="button" class="heart ${saved?'saved':''}" data-save="${s.id}" aria-label="Lưu sim ${esc(f)}" aria-pressed="${saved}">${ic('heart')}</button><a class="sim-top" href="${toHref('/sim/'+s.id)}"><span class="carrier-logo">viettel</span><h3 class="sim-number">${simNumber(s.number)}</h3><div class="tags"><span>${esc(String(s.type||'Sim số đẹp').replace(/^Sim /,''))}</span>${s.element?`<span>Mệnh ${esc(s.element)}</span>`:''}</div><div class="sim-meta"><b class="price">${money(s.price)}</b>${available?'':`<small class="stock">${esc(statuses[s.status]||'')}</small>`}</div></a><div class="card-actions ${detail?'':'single'}">${detail?link('/sim/'+s.id,'Chi tiết','outline'):''}${available?`<button type="button" class="button purchase" data-buy="${s.id}" aria-label="Mua sim ${esc(f)}">Mua ngay</button>`:link('/sim/'+s.id,'Xem sim','outline')}</div></article>`;}
@@ -184,8 +259,8 @@ function home(data=null) {
 }
 function favoritesPage(data=null){return `<main id="main" class="container page-sections favorites-page"><div class="section-head"><h1>Sim yêu thích</h1>${link('/kho-sim','Xem kho sim','text-link')}</div><p>Sim bạn lưu trên thiết bị này. Giá và tình trạng được cập nhật lại từ cửa hàng.</p><div class="sim-grid">${data?data.items.map(sim=>card(sim)).join('')||'<section class="empty"><h2>Bạn chưa lưu sim nào</h2><p>Bấm biểu tượng trái tim trên thẻ sim để xem lại tại đây.</p>'+link('/kho-sim','Khám phá kho sim','button')+'</section>':inventoryLoading()}</div></main>`;}
 function select(name,label,options,value='') {return `<label>${label}<select name="${name}"><option value="">Tất cả</option>${options.map(([v,t])=>`<option value="${esc(v)}" ${value===String(v)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;}
-function filters(params,feng=false) {return `<form class="filter-row filters"><label class="filter-query">Số cần tìm<input name="q" type="search" inputmode="numeric" placeholder="Ví dụ: 999" value="${esc(params.get('q')||'')}"></label>${select('prefix','Đầu số',['086','096','097','098','032','033','034','035','036','037','038','039'].map(v=>[v,v]),params.get('prefix'))}${select('type','Loại sim',catalogTypes.map(v=>[v,v]),params.get('type'))}${select('max_price','Giá tối đa',[[1000000,'1 triệu'],[5000000,'5 triệu'],[10000000,'10 triệu'],[50000000,'50 triệu']],params.get('max_price'))}${feng?select('element','Ngũ hành',['Kim','Mộc','Thủy','Hỏa','Thổ'].map(v=>[v,v]),params.get('element')):select('branch','Cơ sở',config.branches.map(b=>[b.id,b.name]),params.get('branch'))}${select('status','Tình trạng',[['available','Còn hàng'],['reserved','Đang giữ chỗ'],['sold','Đã bán']],params.get('status'))}${select('sort','Sắp xếp',[['asc','Giá tăng dần'],['desc','Giá giảm dần']],params.get('sort'))}<div class="filter-buttons"><button>Lọc sim</button><a class="outline" href="${feng?'/sim-phong-thuy':'/kho-sim'}">Xóa bộ lọc</a></div></form>`;}
-function pager(data,base,params) {const pages=Math.ceil(data.total/data.size);if(pages<2)return '';const pageLink=n=>{const p=new URLSearchParams(params);p.set('page',n);return base+'?'+p};return `<nav class="pagination" aria-label="Phân trang">${data.page>1?link(pageLink(data.page-1),'← Trước','outline'):''}<span>Trang ${data.page} / ${pages}</span>${data.page<pages?link(pageLink(data.page+1),'Tiếp →','outline'):''}</nav>`;}
+function filters(params,feng=false) {return `<form class="filter-row filters"><label class="filter-query">Số cần tìm<input name="q" type="search" inputmode="search" placeholder="VD: 098*, *999 hoặc 6868" value="${esc(params.get('q')||'')}"></label>${select('prefix','Đầu số',['086','096','097','098','032','033','034','035','036','037','038','039'].map(v=>[v,v]),params.get('prefix'))}${select('type','Loại sim',catalogTypes.map(v=>[v,v]),params.get('type'))}${select('max_price','Giá tối đa',[[1000000,'1 triệu'],[5000000,'5 triệu'],[10000000,'10 triệu'],[50000000,'50 triệu']],params.get('max_price'))}${feng?select('element','Ngũ hành',['Kim','Mộc','Thủy','Hỏa','Thổ'].map(v=>[v,v]),params.get('element')):select('branch','Cơ sở',config.branches.map(b=>[b.id,b.name]),params.get('branch'))}${select('status','Tình trạng',[['available','Còn hàng'],['reserved','Đang giữ chỗ'],['sold','Đã bán']],params.get('status'))}${select('sort','Sắp xếp',[['asc','Giá tăng dần'],['desc','Giá giảm dần']],params.get('sort'))}<div class="filter-buttons"><button>Lọc sim</button><a class="outline" href="${feng?'/sim-phong-thuy':'/kho-sim'}">Xóa bộ lọc</a></div></form>`;}
+function pager(data,base,params) {const pages=Math.ceil(data.total/data.size);if(!data.wildcard&&pages<2)return '';const pageLink=n=>{const p=new URLSearchParams(params);p.set('page',n);return base+'?'+p};return `<nav class="pagination" aria-label="Phân trang">${data.page>1?link(pageLink(data.page-1),'← Trước','outline'):''}<span>${data.wildcard?`Trang ${data.page}${data.complete?' / '+Math.max(1,pages):' · Còn kết quả đang kiểm tra'}`:`Trang ${data.page} / ${pages}`}</span>${(data.wildcard?data.hasNext:data.page<pages)?link(pageLink(data.page+1),'Tiếp →','outline'):''}</nav>`;}
 function catalog(feng=false,data=null) {
  const params=new URLSearchParams(routeSearch());params.delete('size');
  const catalogSidebar=`<aside class="catalog-side"><div class="catalog-side-title">${ic('filter')} BỘ LỌC TÌM KIẾM</div><div class="catalog-side-group"><h3>Tìm theo đầu số</h3><div class="side-filter-options">${['086','096','097','098','032','033','034','035','036','037','038','039'].map(v=>link('/kho-sim?prefix='+v,`<span class="fake-check"></span>${v} (Viettel)`)).join('')}</div></div><div class="catalog-side-group"><h3>Tìm theo dạng sim</h3><div class="side-filter-options">${['Sim tứ quý','Sim tam hoa','Sim lộc phát','Sim thần tài','Sim số đẹp','Sim phong thủy'].map(v=>link((feng?'/sim-phong-thuy':'/kho-sim')+'?type='+encodeURIComponent(v),`<span class="fake-check"></span>${v}`)).join('')}</div></div><div class="catalog-side-group"><h3>Khoảng giá</h3><div class="side-filter-options">${[[1000000,'Dưới 1 triệu'],[5000000,'1 – 5 triệu'],[10000000,'5 – 10 triệu'],[50000000,'10 – 50 triệu']].map(([v,t])=>link('/kho-sim?max_price='+v,`<span class="fake-check round"></span>${t}`)).join('')}</div></div><div class="catalog-side-group"><h3>Nhà mạng</h3><p class="side-operator">☑ Viettel</p></div>${link(feng?'/sim-phong-thuy':'/kho-sim','Xem tất cả sim','button side-submit')}</aside>`;
@@ -194,7 +269,7 @@ function catalog(feng=false,data=null) {
  ${feng?`<section class="element-section"><div class="elements">${[['Kim','◆','#e0a417'],['Mộc','❀','#087743'],['Thủy','≋','#1163ad'],['Hỏa','♨','#cf1129'],['Thổ','▲','#95572b']].map(([e,i,c])=>link('/sim-phong-thuy?element='+encodeURIComponent(e),`<i style="background:${c}" aria-hidden="true">${i}</i><div><h3>${e}</h3><b>Sim mệnh ${e}</b><small>${({Kim:'Tăng sự quyết đoán',Mộc:'Phát triển bền vững',Thủy:'Thuận lợi công việc',Hỏa:'Bứt phá thành công',Thổ:'Ổn định bền vững'})[e]}</small></div>`,'element '+(params.get('element')===e?'chosen':''))).join('')}</div><p class="section-note">Phân loại ngũ hành là thông tin tham khảo, không phải cam kết may mắn hay tài lộc.</p></section>`:''}
  <div class="catalog-layout">${!feng?catalogSidebar:''}<div class="catalog-content"><div class="catalog-heading"><div><h2>${feng?'Sim phong thủy được quan tâm nhất':'Kho sim số đẹp'}</h2><p>Kho sim Viettel · Đa dạng đầu số, nhiều mức giá, phù hợp nhu cầu.</p></div>${!feng?`<a class="catalog-banner" href="${toHref('/lien-he')}">🎁 &nbsp; Hỗ trợ đăng ký chính chủ – Tư vấn miễn phí &nbsp; →</a>`:''}</div>
  <section class="panel catalog-filters" aria-labelledby="filter-title"><div class="section-head"><h2 id="filter-title">Bộ lọc sim phù hợp</h2><button type="button" class="outline filter-toggle" aria-expanded="false">${ic('filter')}Bộ lọc</button></div>${filters(params,feng)}</section>
- <section class="catalog-stock" aria-labelledby="list-title"><div class="stock-results"><h2 id="list-title">${feng?'Sim phong thủy nổi bật':'Danh sách sim'}</h2><p class="results" aria-live="polite">${data?`Hiển thị ${data.total.toLocaleString('vi-VN')} sim${data.total?` · ${(data.page-1)*data.size+1}–${Math.min(data.page*data.size,data.total)}`:''}`:'Đang cập nhật danh sách sim…'}</p></div><div class="sim-grid ${feng?'feng-grid':''}">${data?data.items.map(s=>card(s)).join('')||empty():inventoryLoading()}</div>${data?pager(data,feng?'/sim-phong-thuy':'/kho-sim',params):''}</section></div></div>
+ <section class="catalog-stock" aria-labelledby="list-title"><div class="stock-results"><h2 id="list-title">${feng?'Sim phong thủy nổi bật':'Danh sách sim'}</h2><p class="results" aria-live="polite">${data?(data.wildcard?`${data.complete?'Tìm thấy':'Đã tìm thấy ít nhất'} ${data.total.toLocaleString('vi-VN')} sim đúng đuôi số · Trang ${data.page}`:`Hiển thị ${data.total.toLocaleString('vi-VN')} sim${data.total?` · ${(data.page-1)*data.size+1}–${Math.min(data.page*data.size,data.total)}`:''}`):'Đang cập nhật danh sách sim…'}</p></div>${params.get('q')?`<p class="sim-search-hint">${parseSimPattern(params.get('q'))?.kind==='prefix'?`Chỉ hiển thị số bắt đầu bằng <b>${esc(parseSimPattern(params.get('q')).prefix)}</b>`:parseSimPattern(params.get('q'))?.suffix?`Chỉ hiển thị số ${parseSimPattern(params.get('q')).prefix?`bắt đầu bằng <b>${esc(parseSimPattern(params.get('q')).prefix)}</b> và `:''}kết thúc bằng <b>${esc(parseSimPattern(params.get('q')).suffix)}</b>`:'Mẹo: nhập <b>098*</b> để lọc đầu số; <b>*999</b> để lọc đuôi số.'}</p>`:''}<div class="sim-grid ${feng?'feng-grid':''}">${data?data.items.map(s=>card(s)).join('')||empty():inventoryLoading()}</div>${data?pager(data,feng?'/sim-phong-thuy':'/kho-sim',params):''}</section></div></div>
  <section class="panel help-card"><div><h2>Chưa tìm được số phù hợp?</h2><p>Gửi yêu cầu để cửa hàng tư vấn số sim theo mong muốn.</p></div>${link('/lien-he','Nhận tư vấn miễn phí','outline')}</section>
  </main>`;
 }
@@ -351,7 +426,7 @@ async function render(preserve=false) {
   else if(/^\/sim\/\d+$/.test(path))dataPath='/api/sims/'+path.split('/')[2];
   else if(path==='/')dataPath='/api/sims?size=4&status=available';
   if(path==='/yeu-thich')tasks.push(loadFavorites(state));
-  if(dataPath)tasks.push(api(dataPath).then(async data=>{
+  if(dataPath)tasks.push((path==='/kho-sim'||path==='/sim-phong-thuy'?catalogSims(path,new URLSearchParams(routeSearch())):api(dataPath)).then(async data=>{
     remember(data);pageModels.set(key,data);state.data=data;if(activeState===state)paint(state);
     if(path.startsWith('/sim/')){try{state.related=await api('/api/sims?size=4&type='+encodeURIComponent(data.type));remember(state.related);if(activeState===state)paint(state);}catch{state.related={items:[]};if(activeState===state)paint(state);}}
   }).catch(error=>{state.error=error.message;if(!state.data)state.data=path.startsWith('/sim/')?null:{items:[],total:0,page:1,size:24};if(activeState===state)paint(state);}));
@@ -403,7 +478,7 @@ function bind() {
   const footerDisclosure=app.querySelector('.footer-disclosure');if(footerDisclosure)footerDisclosure.open=matchMedia('(min-width:821px)').matches;
   const menu=document.querySelector('.menu-toggle');if(menu)menu.onclick=()=>{const opened=menu.getAttribute('aria-expanded')==='true';menu.setAttribute('aria-expanded',String(!opened));document.querySelector('#main-nav').classList.toggle('open',!opened)};
   document.querySelectorAll('.search').forEach(f=>f.onsubmit=e=>{e.preventDefault();navigate('/kho-sim?q='+encodeURIComponent(new FormData(f).get('q')))});
-  document.querySelectorAll('.filters').forEach(f=>f.onsubmit=e=>{e.preventDefault();const p=new URLSearchParams();for(const [k,v]of new FormData(f))if(v)p.set(k,v);navigate(routePath()+'?'+p)});
+  document.querySelectorAll('.filters').forEach(f=>f.onsubmit=e=>{e.preventDefault();const p=new URLSearchParams();for(const [k,v]of new FormData(f))if(v)p.set(k,v);const pattern=parseSimPattern(p.get('q'));if(pattern?.prefix)p.set('prefix',pattern.prefix);navigate(routePath()+'?'+p)});
   document.querySelectorAll('[data-search]').forEach(button=>button.onclick=()=>{if(routePath()!=='/')navigate('/kho-sim');const input=document.querySelector('.search input');input?.scrollIntoView({behavior:'smooth',block:'center'});input?.focus({preventScroll:true});});
   const homeFilter=document.querySelector('.home-filters');if(homeFilter){const apply=e=>{e.preventDefault();const params=new URLSearchParams();for(const [key,value]of new FormData(homeFilter))if(value&&key!=='carrier')params.set(key,value);navigate('/kho-sim?'+params);};homeFilter.onsubmit=apply;homeFilter.onchange=apply;}
   const filterToggle=document.querySelector('.filter-toggle');if(filterToggle)filterToggle.onclick=()=>{const f=document.querySelector('.filters');const open=f.classList.toggle('open');filterToggle.setAttribute('aria-expanded',String(open))};

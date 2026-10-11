@@ -3,8 +3,11 @@ exclude:
   - README.md
   - shell.html
   - prerender.cjs
+  - prerender_fallback.cjs
+  - build_local.py
   - assets.cjs
   - mobile.test.cjs
+  - search-pattern.test.cjs
   - package.json
   - package-lock.json
   - node_modules

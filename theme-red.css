@@ -1,8 +1,8 @@
 /* Viettel Phú Hà · giao diện đỏ/đỏ đô/xanh ngọc theo bộ ảnh người dùng cung cấp.
  * CSS bổ sung giúp giữ nguyên Google Sheets, đường dẫn SEO và các biểu mẫu đang hoạt động. */
 :root{
- --red:#e60025;--red-d:#be0021;--red-t:#fff0f2;
- --wine:#a60821;--wine-2:#d50026;--wine-line:#175b4b;
+ --red:#f00632;--red-d:#cf002a;--red-t:#fff0f4;
+ --wine:#b00025;--wine-2:#e70030;--wine-line:#175b4b;
  --ink:#172a30;--ink-2:#405057;--mute:#6b7479;--line:#eceef0;--mist:#f8f9fa;
  --ok:#087b4b;--ok-t:#ebf8f1;--r:10px;
  --font:'Be Vietnam Pro',Arial,sans-serif;--display:'Be Vietnam Pro',Arial,sans-serif;
@@ -17,20 +17,20 @@ button:hover,.button:hover{background:var(--red-d);border-color:var(--red-d)}
 .outline:hover,button.outline:hover,a.outline:hover{background:#fff3f5;border-color:var(--red);color:var(--red)}
 input,select,textarea{border:1px solid #e2e5e9;border-radius:6px;min-height:40px;background:white;font-size:13px}
 input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #fddce2}
-.announcement{background:#d40023;color:white;min-height:31px;font-size:11px}
+.announcement{background:#e9002d;color:white;min-height:31px;font-size:11px}
 .announcement-inner{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:31px}
 .announcement a{color:#fff}
 .site-header{top:0;background:#fff;box-shadow:0 2px 10px #132e3810;border-bottom:1px solid #eeeeee;backdrop-filter:none}
 .nav{min-height:67px;gap:20px}
 .brand{display:flex;gap:12px;align-items:center;min-width:0;margin-right:auto}
-.viettel-mark{color:#e8002b;font:800 31px/1 Arial,sans-serif;letter-spacing:-1.7px;white-space:nowrap}
+.viettel-mark{color:#f00632;font:800 31px/1 Arial,sans-serif;letter-spacing:-1.7px;white-space:nowrap}
 .brand-divider{background:#dedede;width:1px;height:43px;flex:none}
 .brand-label{display:block;min-width:0}
-.brand-label strong{display:block;font:800 23px/1.15 var(--display);color:#c9092b;white-space:nowrap}
+.brand-label strong{display:block;font:800 23px/1.15 var(--display);color:#d8002a;white-space:nowrap}
 .brand-label small{display:block;font-size:10.5px;line-height:1.45;color:#5e5d5d;white-space:nowrap}
 #main-nav{display:flex;gap:3px;align-items:center;margin:0 auto}
 #main-nav a{color:#24262b;font-size:12px;font-weight:600;padding:22px 12px;white-space:nowrap}
-#main-nav a.active{color:#c70026}
+#main-nav a.active{color:#dd002b}
 #main-nav a.active::after{height:3px;bottom:10px;background:var(--red);left:12px;right:12px}
 .hotline{border:0;padding:0;background:white;color:#c60024;gap:8px;border-radius:4px}
 .hotline:hover{background:#fff4f4}
@@ -39,7 +39,7 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .hotline small{display:block;font-size:10px;color:#53575e;opacity:1;line-height:1.3}
 .hotline b{font-size:16px;white-space:nowrap;color:#c60027}
 .header-tools{display:flex;align-items:center;gap:8px}
-.quick-support{display:flex;align-items:center;justify-content:center;gap:6px;min-height:39px;padding:0 13px;border-radius:5px;background:#d80027;color:white;font-weight:700;font-size:12px;white-space:nowrap}
+.quick-support{display:flex;align-items:center;justify-content:center;gap:6px;min-height:39px;padding:0 13px;border-radius:5px;background:var(--red);color:white;font-weight:700;font-size:12px;white-space:nowrap}
 .quick-support:hover{background:#b90022}
 .quick-support .ic{width:17px;height:17px}
 .icon-button{color:#b10025;border:1px solid #f3e5e8;border-radius:6px;background:white;width:36px;height:38px;min-height:38px}
@@ -47,7 +47,7 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .icon-button .ic{width:20px;height:20px}
 .saved-count{background:#cf0024;color:white}
 /* Hero thương hiệu */
-.home-hero{min-height:235px;padding:24px 0 24px;background:linear-gradient(100deg,#830014 0%,#b50320 42%,#e0002a 70%,#db0024 100%);overflow:hidden;isolation:isolate;position:relative}
+.home-hero{min-height:235px;padding:24px 0 24px;background:linear-gradient(100deg,#9b001d 0%,#cb002a 42%,#f00632 70%,#e6002d 100%);overflow:hidden;isolation:isolate;position:relative}
 .home-hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(105deg,transparent 0 35px,rgba(255,255,255,.025) 36px 37px);pointer-events:none;z-index:-1}
 .home-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(95,0,14,.14) 0%,transparent 60%);z-index:-1}
 .hero-photo{position:absolute;right:0;top:0;bottom:0;width:37%;background:url('./reference-hero-right.webp') center center/cover no-repeat;mask-image:linear-gradient(90deg,transparent,#000 22%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%);z-index:-1}
@@ -68,9 +68,9 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 /* Home: bốn danh mục ngang & thẻ sản phẩm như bản thiết kế */
 .home-main{background:transparent;margin:0 auto;padding:12px 0 22px;box-shadow:none;border-radius:0;display:grid;gap:11px}
 .home-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.home-category{min-height:69px;display:flex;flex-direction:row;gap:14px;align-items:center;justify-content:flex-start;padding:12px 20px;border-radius:8px;background:linear-gradient(130deg,#e6002b,#b10022);color:white;text-align:left;box-shadow:0 2px 5px #07152018}
+.home-category{min-height:69px;display:flex;flex-direction:row;gap:14px;align-items:center;justify-content:flex-start;padding:12px 20px;border-radius:8px;background:linear-gradient(130deg,#f20939,#bc0029);color:white;text-align:left;box-shadow:0 2px 5px #07152018}
 .home-category.dark-green{background:linear-gradient(125deg,#005541,#00382d)}
-.home-category.red{background:linear-gradient(125deg,#e0002b,#b80424)}
+.home-category.red{background:linear-gradient(125deg,#f20939,#c4002b)}
 .home-category i{color:white;display:grid;place-items:center;width:44px;height:44px;flex:none}
 .home-category .ic{color:#fff;filter:none;width:40px;height:40px;stroke-width:2.2}
 .home-category i .category-888{background:none}
@@ -84,10 +84,10 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .home-main .section-head{align-items:center;flex-wrap:wrap;margin:0 0 10px;gap:8px}
 .home-main .section-head h2{font-size:19px;color:#17242b;letter-spacing:0;font-weight:850;white-space:nowrap}
 .home-main .section-head>a{font-size:11px;color:#c50025;white-space:nowrap}
-.home-main .section-icon{color:#e4002b;font-size:21px}
+.home-main .section-icon{color:var(--red);font-size:21px}
 .featured-tabs{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-left:auto}
 .featured-tabs a{padding:5px 10px;background:#f4f5f7;border-radius:30px;font-size:10px;color:#525660}
-.featured-tabs .selected{background:#d90026;color:#fff}
+.featured-tabs .selected{background:var(--red);color:#fff}
 .home-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
 .sim-card{background:#fff;border:1px solid #e8ebed;border-radius:8px;box-shadow:0 1px 3px #161d2312;min-width:0}
 .sim-card:hover{border-color:#e6919e;box-shadow:0 8px 22px #e5002920;transform:translateY(-2px)}
@@ -95,7 +95,7 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .carrier-logo{width:52px;height:52px;border-radius:5px;display:flex;align-items:center;justify-content:center;grid-column:1;grid-row:1/4;background:linear-gradient(145deg,#a5001e,#f40835 65%,#b20026 66%,#efbd4a 98%);color:#fff!important;box-shadow:0 1px 5px #9d172640;font:700 13px/1 Arial,sans-serif;letter-spacing:-.5px;position:relative;margin:0;overflow:hidden}
 .carrier-logo:after{content:'';position:absolute;bottom:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#b78824,#ffe99d,#c08c2a)}
 .sim-number{grid-column:2;grid-row:1;margin:0;font-size:min(19px,calc((100cqw - 75px)/7.6));letter-spacing:-.025em;line-height:1.2;color:#19323a!important;font-weight:850;white-space:nowrap}
-.sim-number em{color:#c80027!important}
+.sim-number em{color:#d6002b!important}
 .tags{grid-column:2;grid-row:2;display:flex;gap:4px;margin:3px 0 5px;padding:0;overflow:hidden}
 .tags span,.tags span:first-child{font-size:9px;line-height:1.25;font-weight:500;padding:3px 4px;background:#fff3df;color:#b57c28;border:1px solid #f0e5d7;border-radius:4px}
 .tags span:nth-child(2){color:#00835c;background:#e9f8f0;border-color:#ddf1e7}
@@ -108,7 +108,7 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .home-grid .card-actions{grid-template-columns:1fr}
 .card-actions>a.outline,.card-actions>button{border-radius:5px;font-size:11px;min-height:32px;font-weight:700;padding:5px}
 .card-actions>a.outline{color:#bd0025;border:1px solid #d6002d}
-.card-actions>button{color:#fff;background:#de002a}
+.card-actions>button{color:#fff;background:var(--red)}
 .card-actions>button:hover{background:#ab0022}
 .card-actions>button::before{content:'🛒';font-size:11px}
 .home-offers{display:grid;gap:10px;grid-template-rows:1fr 1fr;min-width:0}
@@ -118,7 +118,7 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .home-benefits{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;gap:0;padding:9px 7px;border-radius:7px;background:#f3f5f6;border:1px solid #eff1f2}
 .home-benefits>div{gap:9px;padding:2px 14px;border-right:1px solid #e3e5e7}
 .home-benefits>div:last-child{border:0}
-.home-benefits i{width:30px;height:30px;background:transparent;color:#d2002c;border-radius:0}
+.home-benefits i{width:30px;height:30px;background:transparent;color:var(--red);border-radius:0}
 .home-benefits i .ic{width:27px;height:27px;stroke-width:2.2}
 .home-benefits b{font-size:11px;font-weight:750;color:#17272c}
 .home-benefits small{font-size:9px;color:#66747c;margin-top:2px;line-height:1.35}
@@ -134,7 +134,7 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .feedback-card p{font-size:10px;line-height:1.45;margin:0 0 2px}
 .feedback-card .text-link{font-size:10px;color:#b90026}
 /* Trang con: banner / bộ lọc / danh mục */
-.page-head{position:relative;padding:0;background:linear-gradient(100deg,#900013,#b80020 61%,#e5002d);color:#fff;overflow:hidden;min-height:144px}
+.page-head{position:relative;padding:0;background:linear-gradient(100deg,#a0001d,#d10029 61%,#f00632);color:#fff;overflow:hidden;min-height:144px}
 .page-head.catalog-head{min-height:108px}
 .page-head-inner{position:relative;display:flex;align-items:center;min-height:inherit;padding-block:20px}
 .page-head-copy{z-index:1;max-width:64%;position:relative}
@@ -167,9 +167,9 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .side-submit{width:100%;margin-top:13px}
 .catalog-content{min-width:0}
 .catalog-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:10px}
-.catalog-heading h2{font-size:27px;color:#cf0026;font-weight:850;line-height:1.2}
+.catalog-heading h2{font-size:27px;color:#dd002b;font-weight:850;line-height:1.2}
 .catalog-heading p{margin:4px 0 0;font-size:12px;color:#596168}
-.catalog-banner{display:inline-flex;align-items:center;justify-content:center;min-width:305px;min-height:52px;padding:9px 20px;color:#fff;background:linear-gradient(115deg,#b90022,#ed102f);border-radius:6px;font-weight:800;font-size:13px;text-align:center;box-shadow:0 2px 8px #ca18352a}
+.catalog-banner{display:inline-flex;align-items:center;justify-content:center;min-width:305px;min-height:52px;padding:9px 20px;color:#fff;background:linear-gradient(115deg,#ca0027,#f30938);border-radius:6px;font-weight:800;font-size:13px;text-align:center;box-shadow:0 2px 8px #ca18352a}
 .catalog-filters{padding:9px 10px;background:#fafbfc;border-radius:6px;border:1px solid #e8ebed;margin-bottom:9px}
 .catalog-filters .section-head{display:none}
 .filter-row{display:grid;grid-template-columns:1.1fr repeat(6,minmax(0,1fr));gap:8px;align-items:end}
@@ -291,3 +291,8 @@ main.container.detail-main{padding-top:14px;gap:15px;padding-bottom:20px}
 
 /* Vùng chạm tối thiểu 44px và điều hướng di động gọn, không tràn màn hình */
 @media(max-width:820px){.header-tools .saved-shortcut{display:none!important}.header-tools .icon-button{width:44px;height:44px;min-height:44px}.mobile-actions a,.mobile-actions button{min-height:58px}.card-actions>a.outline,.card-actions>button{min-height:44px}.home-offers .offer{min-height:116px}}
+
+/* Tìm sim theo mẫu: 098* (đầu số), *999 (đuôi số), 098*999. */
+.sim-search-hint{font-size:12px;color:#43525a;background:#fff6f8;border-left:3px solid var(--red);padding:7px 11px;margin:0 0 11px;border-radius:3px;line-height:1.5}
+.sim-search-hint b{color:#bf0028;letter-spacing:.02em}
+@media(max-width:820px){.sim-search-hint{font-size:11px;margin-bottom:9px;padding:6px 8px}}
