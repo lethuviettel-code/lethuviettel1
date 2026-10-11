@@ -1,4 +1,122 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Quản trị | Viettel Phú Hà</title><link rel="icon" href="./favicon.svg"><style>
-*{box-sizing:border-box}body{margin:0;padding:24px;font:16px/1.6 system-ui,sans-serif;background:#fff7f8;color:#2b2529}main{max-width:520px;margin:12vh auto;background:#fff;border:1px solid #f2dce2;border-radius:20px;padding:28px;box-shadow:0 10px 40px #b7082814}h1{font-size:26px;line-height:1.25;margin-top:0}p{color:#667178}a{display:block;min-height:48px;padding:13px 18px;text-align:center;color:#fff;background:#d6002b;border-radius:10px;text-decoration:none;font-weight:600;margin-top:16px}.back{color:#d6002b;background:#fff0f3}a:focus-visible{outline:3px solid #e52c4b;outline-offset:4px}@media(max-width:400px){body{padding:16px}main{padding:22px;margin-top:8vh}}
-</style></head><body><main><h1>Viettel Phú Hà · Quản trị</h1><p>Mở trang quản trị của cửa hàng để cập nhật kho sim, xem yêu cầu khách và quản lý thông báo Zalo.</p><a id="admin-entry" href="https://script.google.com/macros/s/AKfycbyOqVfgrtxYXDyoE5iES7JOr6CAghE0cxqqhdgcfrFP-GY6_PS4mySO5gno7xhWVDPx/exec?view=admin">Mở trang quản trị</a><a class="back" href="./">Về website</a></main></body></html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ee0033">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://script.google.com https://script.googleusercontent.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <title>Quản trị cửa hàng | Viettel Phú Hà</title>
+  <meta name="description" content="Trang tổng quan nội bộ Viettel Phú Hà, kiểm tra kho SIM và chuyển sang hệ thống quản trị có xác thực.">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="./admin.css?v=20261011-admindashboard-v1">
+  <script src="./admin.js?v=20261011-admindashboard-v1" defer></script>
+</head>
+<body>
+<svg class="svg-icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <symbol id="a-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></symbol>
+  <symbol id="a-sim" viewBox="0 0 24 24"><path d="M7 2h8l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a3 3 0 0 1 3-3Z"/><rect x="8" y="11" width="8" height="7" rx="1"/><path d="M11 11v7M8 14.5h8"/></symbol>
+  <symbol id="a-orders" viewBox="0 0 24 24"><path d="M5 7h14l-1 14H6L5 7Z"/><path d="M9 9V5a3 3 0 0 1 6 0v4"/></symbol>
+  <symbol id="a-chart" viewBox="0 0 24 24"><path d="M4 20V11m6 9V4m6 16v-8m4 8H2"/></symbol>
+  <symbol id="a-settings" viewBox="0 0 24 24"><path d="M12 2.5 14 4l2.3-.1 1.1 2 2.2.8v2.4l1.3 1.9-1.3 2v2.4l-2.2.8-1.1 2-2.3-.1L12 21l-2-1.9-2.3.1-1.1-2-2.2-.8V14L3 12l1.4-2V7.6l2.2-.8 1.1-2L10 4l2-1.5Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="a-external" viewBox="0 0 24 24"><path d="M14 4h6v6m0-6-9 9"/><path d="M19 14v5H5V6h5"/></symbol>
+  <symbol id="a-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+  <symbol id="a-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10M10 21h4"/></symbol>
+  <symbol id="a-add" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="a-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 9a7 7 0 0 1 12-2l2 5M4 12l2 5a7 7 0 0 0 12-2"/></symbol>
+  <symbol id="a-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="a-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
+  <symbol id="a-shield" viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="a-phone" viewBox="0 0 24 24"><path d="m7 3 3 5-2.5 2A15 15 0 0 0 14 16l2-2.5 5 3v3a2 2 0 0 1-2 2A17 17 0 0 1 2.5 5a2 2 0 0 1 2-2H7Z"/></symbol>
+  <symbol id="a-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="a-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18m0-18c5 5 5 13 0 18"/></symbol>
+  <symbol id="a-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="a-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+  <symbol id="a-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="a-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
+  <symbol id="a-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.5"/></symbol>
+  <symbol id="a-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"/></symbol>
+  <symbol id="a-sparkle" viewBox="0 0 24 24"><path d="m12 2 2.1 6.1L20 10l-5.9 2L12 18l-2.1-6L4 10l5.9-1.9L12 2Z"/></symbol>
+</svg>
+<div class="mobile-shade" id="mobile-shade" hidden></div>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar" aria-label="Điều hướng quản trị">
+    <div class="sidebar-head">
+      <a class="logo" href="./admin.html" aria-label="Viettel Phú Hà - Tổng quan quản trị"><span class="logo-main">viettel</span><span class="logo-divider"></span><span class="logo-name"><b>Viettel Phú Hà</b><small>HỆ THỐNG QUẢN TRỊ</small></span></a>
+      <button class="icon-btn sidebar-close" id="close-sidebar" type="button" aria-label="Đóng menu"><svg><use href="#a-close"/></svg></button>
+    </div>
+    <div class="workspace-name"><span class="workspace-icon">VP</span><span><b>Không gian cửa hàng</b><small>simdep68.vn</small></span><span class="workspace-chev">⌄</span></div>
+    <p class="nav-caption">QUẢN LÝ CỬA HÀNG</p>
+    <nav class="side-links" aria-label="Các trang quản trị">
+      <button class="nav-link is-active" type="button" data-view="overview" aria-current="page"><svg><use href="#a-dashboard"/></svg>Tổng quan</button>
+      <button class="nav-link" type="button" data-view="inventory"><svg><use href="#a-sim"/></svg>Kho SIM</button>
+      <button class="nav-link" type="button" data-view="orders"><svg><use href="#a-orders"/></svg>Đơn hàng <span class="nav-lock">↗</span></button>
+      <button class="nav-link" type="button" data-view="reports"><svg><use href="#a-chart"/></svg>Báo cáo</button>
+      <button class="nav-link" type="button" data-view="settings"><svg><use href="#a-settings"/></svg>Cài đặt</button>
+    </nav>
+    <div class="side-bottom"><div class="side-help"><div class="help-icon"><svg><use href="#a-shield"/></svg></div><b>Quản lý an toàn</b><p>Thao tác chỉnh sửa và thông tin khách hàng được mở trong hệ thống có xác thực.</p><a class="help-link" data-admin-link href="#">Mở quản trị chính <svg><use href="#a-arrow"/></svg></a></div><a class="back-site" href="./">← Quay lại website</a></div>
+  </aside>
+  <div class="right-area">
+    <header class="topbar">
+      <button class="icon-btn hamburger" id="open-sidebar" type="button" aria-label="Mở menu"><svg><use href="#a-menu"/></svg></button>
+      <div class="topbar-heading"><p>VIETTEL PHÚ HÀ <span class="dot-separator">/</span> QUẢN TRỊ</p><strong id="topbar-title">Tổng quan</strong></div>
+      <div class="top-actions"><span class="readonly-pill"><svg><use href="#a-shield"/></svg><span>Chế độ xem</span></span><a class="icon-btn web-link" href="./" title="Mở website" aria-label="Mở website"><svg><use href="#a-globe"/></svg></a><a class="btn btn-red top-admin" data-admin-link href="#"><svg><use href="#a-external"/></svg><span>Quản trị đầy đủ</span></a><div class="avatar" title="Viettel Phú Hà">PH</div></div>
+    </header>
+    <main class="main-content" id="main-content">
+      <div class="notice-readonly" role="note"><svg><use href="#a-info"/></svg><span>Đây là giao diện HTML <b>xem thông tin kho SIM</b>. Để thêm, sửa, xóa SIM hoặc xem đơn hàng khách, hãy mở <a data-admin-link href="#">quản trị có xác thực</a>.</span></div>
+
+      <section class="view is-active" id="view-overview" aria-labelledby="overview-title">
+        <div class="page-welcome"><div><span class="eyebrow">TRUNG TÂM ĐIỀU HÀNH</span><h1 id="overview-title">Xin chào, Viettel Phú Hà <span class="wave">✦</span></h1><p>Theo dõi kho SIM và truy cập nhanh các công việc cửa hàng.</p></div><a class="btn btn-red" data-admin-link href="#"><svg><use href="#a-add"/></svg> Thêm SIM mới</a></div>
+        <div class="hero-dashboard"><div class="hero-dashboard-content"><span class="hero-chip">VIETTEL PHÚ HÀ • PHÚ THỌ</span><h2>Quản lý cửa hàng<br><span>nhanh chóng, tiện lợi.</span></h2><p>Kết nối dữ liệu SIM từ Google Sheets và điều hành cửa hàng ở một nơi.</p><a class="hero-link" data-view-link="inventory" href="#inventory">Xem kho SIM <svg><use href="#a-arrow"/></svg></a></div><div class="hero-rings" aria-hidden="true"><i></i><i></i><i></i><span>V</span></div></div>
+        <div class="metric-grid" aria-label="Tổng quan kho SIM">
+          <article class="metric-card"><span class="metric-ico red"><svg><use href="#a-sim"/></svg></span><span class="metric-label">Tổng SIM trong kho</span><strong id="metric-total">—</strong><small id="metric-total-note">Đang lấy dữ liệu...</small></article>
+          <article class="metric-card"><span class="metric-ico pink"><svg><use href="#a-shield"/></svg></span><span class="metric-label">SIM đang còn hàng</span><strong id="metric-available">—</strong><small id="metric-available-note">Đang lấy dữ liệu...</small></article>
+          <article class="metric-card"><span class="metric-ico orange"><svg><use href="#a-dashboard"/></svg></span><span class="metric-label">SIM trang đầu</span><strong id="metric-visible">—</strong><small>Hiển thị từ danh mục công khai</small></article>
+          <article class="metric-card"><span class="metric-ico gray"><svg><use href="#a-refresh"/></svg></span><span class="metric-label">Kết nối dữ liệu</span><strong class="connection-value" id="metric-connection">Đang tải</strong><small id="metric-sync-note">Google Sheets</small></article>
+        </div>
+        <div class="dashboard-columns"><section class="panel recent-panel"><div class="panel-head"><div><h2>SIM mới cập nhật</h2><p>Danh sách hiện có trên website</p></div><button class="text-action" type="button" data-view="inventory">Xem tất cả <svg><use href="#a-arrow"/></svg></button></div><div id="recent-list" class="recent-list"><p class="loading-message">Đang tải danh sách SIM...</p></div></section><section class="panel quick-panel"><div class="panel-head"><div><h2>Thao tác nhanh</h2><p>Công việc thường dùng</p></div></div><div class="quick-links"><a data-admin-link href="#"><span class="quick-icon"><svg><use href="#a-add"/></svg></span><span><b>Thêm SIM vào kho</b><small>Qua quản trị bảo mật</small></span><svg class="end-arrow"><use href="#a-chevron"/></svg></a><a data-admin-link href="#"><span class="quick-icon"><svg><use href="#a-orders"/></svg></span><span><b>Xem yêu cầu mua SIM</b><small>Kiểm tra và tư vấn khách hàng</small></span><svg class="end-arrow"><use href="#a-chevron"/></svg></a><a data-admin-link href="#"><span class="quick-icon"><svg><use href="#a-settings"/></svg></span><span><b>Cập nhật giá & trạng thái</b><small>Đồng bộ với Google Sheets</small></span><svg class="end-arrow"><use href="#a-chevron"/></svg></a><a href="./" target="_blank" rel="noopener"><span class="quick-icon"><svg><use href="#a-globe"/></svg></span><span><b>Xem trang bán hàng</b><small>simdep68.vn</small></span><svg class="end-arrow"><use href="#a-chevron"/></svg></a></div></section></div>
+      </section>
+
+      <section class="view" id="view-inventory" aria-labelledby="inventory-title" hidden>
+        <div class="page-welcome"><div><span class="eyebrow">DANH MỤC SẢN PHẨM</span><h1 id="inventory-title">Quản lý kho SIM</h1><p>Tìm kiếm, xem giá bán và kiểm tra tình trạng SIM đang được công khai.</p></div><a class="btn btn-red" data-admin-link href="#"><svg><use href="#a-add"/></svg> Thêm SIM mới</a></div>
+        <div class="panel inventory-panel"><div class="inventory-heading"><div><h2>Danh sách SIM Viettel</h2><p id="inventory-count" aria-live="polite">Đang kết nối kho SIM...</p></div><button id="export-current" class="btn btn-outline" type="button" disabled><svg><use href="#a-download"/></svg> Xuất trang hiện tại</button></div>
+          <form id="filters-form" class="filters-row">
+            <label class="field-search"><svg><use href="#a-search"/></svg><input id="filter-query" name="q" type="search" placeholder="Tìm số SIM: 098*, *999, 6868..." autocomplete="off" aria-label="Tìm theo số SIM"></label>
+            <label class="select-label"><svg><use href="#a-filter"/></svg><select id="filter-status" name="status" aria-label="Lọc theo trạng thái"><option value="">Mọi trạng thái</option><option value="available">Còn hàng</option><option value="reserved">Đang giữ chỗ</option><option value="sold">Đã bán</option></select></label>
+            <label class="select-label"><select id="filter-type" name="type" aria-label="Lọc theo loại SIM"><option value="">Tất cả loại SIM</option></select></label>
+            <label class="select-label"><select id="filter-sort" name="sort" aria-label="Sắp xếp theo giá"><option value="">Sắp xếp mặc định</option><option value="asc">Giá tăng dần</option><option value="desc">Giá giảm dần</option></select></label>
+            <button type="submit" class="btn btn-red btn-filter">Lọc kết quả</button>
+          </form>
+          <div id="inventory-feedback" class="inventory-feedback" role="status"></div>
+          <div class="inventory-table-wrap"><table class="inventory-table"><thead><tr><th>Số SIM</th><th>Loại SIM</th><th>Giá bán</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="inventory-body"><tr><td colspan="5" class="loading-cell">Đang tải dữ liệu...</td></tr></tbody></table></div>
+          <div class="pagination"><span id="page-counter">—</span><div><button id="page-prev" class="btn btn-outline" type="button" disabled>‹ Trước</button><button id="page-next" class="btn btn-outline" type="button" disabled>Tiếp ›</button></div></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-orders" aria-labelledby="orders-title" hidden>
+        <div class="page-welcome"><div><span class="eyebrow">CHĂM SÓC KHÁCH HÀNG</span><h1 id="orders-title">Đơn hàng & yêu cầu</h1><p>Giữ bảo mật cho số điện thoại và thông tin cá nhân của khách.</p></div></div>
+        <div class="private-card"><span class="private-icon"><svg><use href="#a-shield"/></svg></span><h2>Quản lý yêu cầu trong hệ thống được bảo vệ</h2><p>Thông tin đặt SIM, số điện thoại và ghi chú của khách không được tải trên trang HTML công khai. Mở Google Apps Script để xác thực và xử lý đơn hàng.</p><a class="btn btn-red" data-admin-link href="#"><svg><use href="#a-external"/></svg>Mở danh sách yêu cầu</a></div>
+        <div class="tip-card"><svg><use href="#a-info"/></svg><span>Website hiện dùng biểu mẫu yêu cầu tư vấn; “Mua ngay” chưa phải thanh toán trực tuyến.</span></div>
+      </section>
+
+      <section class="view" id="view-reports" aria-labelledby="reports-title" hidden>
+        <div class="page-welcome"><div><span class="eyebrow">BÁO CÁO CỬA HÀNG</span><h1 id="reports-title">Thống kê hoạt động</h1><p>Dữ liệu bán hàng và khách hàng cần lấy từ trang quản trị có xác thực.</p></div></div>
+        <div class="panel reports-card"><span class="reports-icon"><svg><use href="#a-chart"/></svg></span><h2>Báo cáo chính xác từ Google Sheets</h2><p>Để xem số lượng yêu cầu, trạng thái xử lý và doanh thu, hãy truy cập hệ thống quản trị gốc. Trang HTML sẽ không hiển thị số liệu giả.</p><a class="btn btn-red" data-admin-link href="#"><svg><use href="#a-external"/></svg> Xem báo cáo quản trị</a></div>
+      </section>
+
+      <section class="view" id="view-settings" aria-labelledby="settings-title" hidden>
+        <div class="page-welcome"><div><span class="eyebrow">THÔNG TIN CỬA HÀNG</span><h1 id="settings-title">Cài đặt</h1><p>Thông tin liên hệ hiển thị trên website và cấu hình kết nối.</p></div><a class="btn btn-red" data-admin-link href="#"><svg><use href="#a-external"/></svg>Chỉnh sửa cài đặt</a></div>
+        <div class="settings-grid"><section class="panel"><h2>Thông tin cơ bản</h2><div class="setting-row"><span>Tên cửa hàng</span><strong id="settings-name">Viettel Phú Hà</strong></div><div class="setting-row"><span>Hotline</span><strong id="settings-phone">0344.639.666</strong></div><div class="setting-row"><span>Email</span><strong id="settings-email">thuntlpto.9x@gmail.com</strong></div><div class="setting-row"><span>Website</span><strong>simdep68.vn</strong></div></section><section class="panel"><h2>Kết nối hệ thống</h2><div class="setting-row"><span>Dữ liệu SIM</span><strong>Google Sheets</strong></div><div class="setting-row"><span>Trạng thái</span><strong id="settings-sync">Đang kiểm tra...</strong></div><div class="setting-row"><span>Chế độ trang HTML</span><strong>Chỉ xem, không sửa</strong></div><p class="settings-note">Tài khoản quản trị và quyền sửa dữ liệu phải được xác minh trên máy chủ, không lưu mật khẩu trong tệp HTML/JavaScript.</p></section></div>
+      </section>
+      <footer class="admin-footer">© 2026 Viettel Phú Hà · Bảng điều khiển cửa hàng <span>Phiên bản HTML · Chỉ đọc dữ liệu công khai</span></footer>
+    </main>
+  </div>
+</div>
+<nav class="mobile-tabbar" aria-label="Chuyển trang quản trị trên điện thoại"><button type="button" data-view="overview" class="is-active"><svg><use href="#a-dashboard"/></svg><span>Tổng quan</span></button><button type="button" data-view="inventory"><svg><use href="#a-sim"/></svg><span>Kho SIM</span></button><button type="button" data-view="orders"><svg><use href="#a-orders"/></svg><span>Đơn hàng</span></button><button type="button" data-view="settings"><svg><use href="#a-settings"/></svg><span>Cài đặt</span></button></nav>
+<div id="admin-toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
