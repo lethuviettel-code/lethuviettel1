@@ -11,7 +11,7 @@ const formatNumber=n=>String(n??'').replace(/\D/g,'').replace(/^(\d{4})(\d{3})(\
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id);
 const statLabel={available:'Còn hàng',reserved:'Đang giữ',sold:'Đã bán'};
-const titles={overview:'Tổng quan',inventory:'Kho SIM',orders:'Đơn hàng',reports:'Báo cáo',settings:'Cài đặt'};
+const titles={overview:'Tổng quan',inventory:'Kho SIM',classification:'Phân loại SIM',orders:'Đơn hàng',reports:'Báo cáo',settings:'Cài đặt'};
 const state={page:1,pageSize:15,total:0,items:[],params:new URLSearchParams(),loaded:false,loading:false,serial:0,next:false,pattern:null,cachedScans:new Map(),overviewLoaded:false};
 let timeoutToast=0;
 function notify(msg){const t=$('admin-toast');t.textContent=String(msg);t.classList.add('is-visible');clearTimeout(timeoutToast);timeoutToast=setTimeout(()=>t.classList.remove('is-visible'),3800);}
@@ -19,7 +19,7 @@ function notify(msg){const t=$('admin-toast');t.textContent=String(msg);t.classL
 // ContentService responses via redirects. No administrator credentials here.
 let callId=0;
 function sheetRead(action, params={}, timeoutMs=20000){return new Promise((resolve,reject)=>{
- const cb='ph_admin_'+Date.now()+'_'+(++callId);
+ const cb='phuha_'+Date.now()+'_'+(++callId);
  const url=new URL(SCRIPT_URL);url.search=new URLSearchParams({...params,action,callback:cb}).toString();
  const el=document.createElement('script');let timer,finished=false;
  const cleanup=()=>{if(finished)return;finished=true;clearTimeout(timer);el.remove();try{delete window[cb];}catch{window[cb]=undefined;}};
@@ -51,7 +51,7 @@ async function initSettings(){try{const data=await sheetRead('settings');if(data
  if(typeof data.email==='string')$('settings-email').textContent=data.email;
  }}catch{/* Using public site defaults; no credentials. */}}
 async function initTypes(){try{const d=await sheetRead('options');if(!Array.isArray(d.types))return;const selected=$('filter-type').value;$('filter-type').innerHTML='<option value="">Tất cả loại SIM</option>'+d.types.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');$('filter-type').value=selected;}catch{/* Filters remain usable without metadata. */}}
-function parsePattern(raw){const q=String(raw||'').trim();let m;if((m=q.match(/^(\d+)\*$/)))return {prefix:m[1],suffix:''};if((m=q.match(/^\*(\d+)$/)))return {prefix:'',suffix:m[1]};if((m=q.match(/^(\d+)\*(\d+)$/)))return {prefix:m[1],suffix:m[2]};return null;}
+function parsePattern(raw){const q=String(raw||'').replace(/[\s.()-]/g,'');let m;if((m=q.match(/^(\d+)\*$/)))return {prefix:m[1],suffix:''};if((m=q.match(/^\*(\d+)$/)))return {prefix:'',suffix:m[1]};if((m=q.match(/^(\d+)\*(\d+)$/)))return {prefix:m[1],suffix:m[2]};return null;}
 async function fetchInventory(params,page){const q=(params.get('q')||'').trim(),pattern=parsePattern(q);
  const query=new URLSearchParams(params);query.delete('q');
  if(!pattern){if(q)query.set('q',q);query.set('page',String(page));query.set('size',String(state.pageSize));return {...await sheetRead('sims',Object.fromEntries(query)),partial:false};}
@@ -59,13 +59,13 @@ async function fetchInventory(params,page){const q=(params.get('q')||'').trim(),
  if(!pattern.suffix){query.set('page',String(page));query.set('size',String(state.pageSize));return {...await sheetRead('sims',Object.fromEntries(query)),partial:false};}
  // The existing Sheets API can search for a substring but cannot filter by suffix.
  // Scan matching records and verify endsWith() in the browser. Cache pages per filter.
- query.set('q',pattern.suffix);query.set('size','100');const key=query.toString();
+ query.set('q',pattern.suffix);query.set('size','60');const key=query.toString();
  let scan=state.cachedScans.get(key);if(!scan){scan={rows:[],seen:new Set(),next:1,done:false};state.cachedScans.set(key,scan);if(state.cachedScans.size>20)state.cachedScans.delete(state.cachedScans.keys().next().value);}
  const needed=page*state.pageSize+1;
  while(scan.rows.length<needed&&!scan.done){const request=new URLSearchParams(query);request.set('page',String(scan.next));const resp=await sheetRead('sims',Object.fromEntries(request));const rows=Array.isArray(resp.items)?resp.items:[];
  const before=scan.seen.size;
  for(const row of rows){const value=String(row.number||'').replace(/\D/g,''),id=String(row.id??value);if(scan.seen.has(id))continue;scan.seen.add(id);if(value.endsWith(pattern.suffix)&&(!pattern.prefix||value.startsWith(pattern.prefix)))scan.rows.push(row);}
- const pageNum=Math.max(1,Number(resp.page)||scan.next),size=Math.max(1,Number(resp.size)||100),total=Number(resp.total);
+ const pageNum=Math.max(1,Number(resp.page)||scan.next),size=Math.max(1,Number(resp.size)||60),total=Number(resp.total);
  scan.next++;
  if(!rows.length||(scan.next>2&&before===scan.seen.size)||(Number.isFinite(total)&&pageNum*size>=total)||scan.next>200)scan.done=true;
  }
@@ -104,6 +104,7 @@ function csvExport(){if(!state.items.length)return;const rows=[['ID','Số SIM',
  const csv='\ufeff'+rows.map(row=>row.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='viettel-phu-ha-sim-trang-'+state.page+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);notify('Đã xuất danh sách SIM trên trang hiện tại.');}
 function setup(){document.querySelectorAll('[data-admin-link]').forEach(a=>{a.href=ADMIN_URL;a.target='_blank';a.rel='noopener noreferrer';});
+ document.querySelectorAll('[data-classification-link]').forEach(a=>{a.href=ADMIN_URL+'&tab=classification';a.target='_blank';a.rel='noopener noreferrer';});
  document.querySelectorAll('button[data-view]').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.view)));
  document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();activateView(a.dataset.viewLink);}));
  $('open-sidebar').addEventListener('click',openMenu);$('close-sidebar').addEventListener('click',closeMenu);$('mobile-shade').addEventListener('click',closeMenu);

@@ -18,7 +18,7 @@ for(const [pathname,file] of files){
  fs.writeFileSync(path.join(root,file),html);
  console.log('Updated '+file,markup.length+' B');
 }
-const publicFiles=new Set(['index.html','kho-sim.html','sim-phong-thuy.html','lien-he.html','chinh-sach.html','yeu-thich.html','sim.html','404.html','admin.html','app.js','styles.css','theme-red.css','hero.webp','promo.webp','favicon.svg','apple-touch-icon.png','icon-192.png','icon-512.png','og-image.png','site.webmanifest','robots.txt','sitemap.xml','CNAME',...fs.readdirSync(root).filter(n=>/^(reference-|cua-hang-).*\.webp$/.test(n))]);
+const publicFiles=new Set(['index.html','kho-sim.html','sim-phong-thuy.html','lien-he.html','chinh-sach.html','yeu-thich.html','sim.html','404.html','admin.html','app.js','admin.js','admin.css','styles.css','theme-red.css','hero.webp','promo.webp','favicon.svg','apple-touch-icon.png','icon-192.png','icon-512.png','og-image.png','site.webmanifest','robots.txt','sitemap.xml','CNAME',...fs.readdirSync(root).filter(n=>/^(reference-|cua-hang-).*\.webp$/.test(n))]);
 const dir=path.join(root,'dist');fs.rmSync(dir,{recursive:true,force:true});fs.mkdirSync(dir);
 for(const filename of publicFiles)fs.copyFileSync(path.join(root,filename),path.join(dir,filename));
 console.log('Built '+publicFiles.size+' deployable files');

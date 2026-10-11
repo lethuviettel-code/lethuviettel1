@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="./admin.css?v=20261011-admindashboard-v1">
-  <script src="./admin.js?v=20261011-admindashboard-v1" defer></script>
+  <link rel="stylesheet" href="./admin.css?v=20261011-classification">
+  <script src="./admin.js?v=20261011-classification" defer></script>
 </head>
 <body>
 <svg class="svg-icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
@@ -54,6 +54,7 @@
     <nav class="side-links" aria-label="Các trang quản trị">
       <button class="nav-link is-active" type="button" data-view="overview" aria-current="page"><svg><use href="#a-dashboard"/></svg>Tổng quan</button>
       <button class="nav-link" type="button" data-view="inventory"><svg><use href="#a-sim"/></svg>Kho SIM</button>
+      <button class="nav-link" type="button" data-view="classification"><svg><use href="#a-filter"/></svg>Phân loại SIM</button>
       <button class="nav-link" type="button" data-view="orders"><svg><use href="#a-orders"/></svg>Đơn hàng <span class="nav-lock">↗</span></button>
       <button class="nav-link" type="button" data-view="reports"><svg><use href="#a-chart"/></svg>Báo cáo</button>
       <button class="nav-link" type="button" data-view="settings"><svg><use href="#a-settings"/></svg>Cài đặt</button>
@@ -95,6 +96,11 @@
           <div class="inventory-table-wrap"><table class="inventory-table"><thead><tr><th>Số SIM</th><th>Loại SIM</th><th>Giá bán</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="inventory-body"><tr><td colspan="5" class="loading-cell">Đang tải dữ liệu...</td></tr></tbody></table></div>
           <div class="pagination"><span id="page-counter">—</span><div><button id="page-prev" class="btn btn-outline" type="button" disabled>‹ Trước</button><button id="page-next" class="btn btn-outline" type="button" disabled>Tiếp ›</button></div></div>
         </div>
+      </section>
+
+      <section class="view" id="view-classification" aria-labelledby="classification-title" hidden>
+        <div class="page-welcome"><div><span class="eyebrow">DANH MỤC WEBSITE</span><h1 id="classification-title">Phân loại SIM</h1><p>Gán loại cho từng SIM hoặc chọn nhiều SIM để cập nhật cùng lúc.</p></div></div>
+        <div class="panel classification-guide"><h2>SIM sẽ hiển thị ở đâu?</h2><ul><li><b>Sim số đẹp:</b> toàn bộ kho SIM công khai, gồm mọi loại.</li><li><b>Sim thần tài, Sim lộc phát:</b> chỉ các SIM đã được gán đúng loại tương ứng.</li><li><b>Sim phong thủy:</b> chỉ SIM có loại “Sim phong thủy”; lọc Kim, Mộc, Thủy, Hỏa, Thổ theo ngũ hành đã chọn.</li></ul><p>Đăng nhập trang quản trị chính để lưu phân loại vào Google Sheets. Ngũ hành được dùng để lọc trong mục phong thủy, không tự chuyển loại SIM.</p><a class="btn btn-red" data-classification-link href="#"><svg><use href="#a-external"/></svg>Mở phân loại SIM và lưu</a></div>
       </section>
 
       <section class="view" id="view-orders" aria-labelledby="orders-title" hidden>

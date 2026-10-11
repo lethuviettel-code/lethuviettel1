@@ -1,6 +1,8 @@
 # GitHub Pages main / (root): only public storefront files are published.
 exclude:
   - README.md
+  - AppsScript-Admin.html
+  - PhanLoai.gs
   - shell.html
   - prerender.cjs
   - prerender_fallback.cjs
@@ -8,6 +10,7 @@ exclude:
   - assets.cjs
   - mobile.test.cjs
   - search-pattern.test.cjs
+  - classification.test.cjs
   - package.json
   - package-lock.json
   - node_modules
