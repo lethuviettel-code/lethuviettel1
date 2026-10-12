@@ -192,6 +192,9 @@ input:focus,select:focus,textarea:focus{border-color:#dc1834;outline:2px solid #
 .catalog-stock .price{font-size:14px}
 .pagination{margin-top:13px;font-size:12px;gap:9px}
 .pagination a.outline{min-height:34px}
+.home-stock-count{margin:0 0 10px}
+.home-featured .pagination{flex-wrap:wrap}
+.home-featured .pagination a.outline{min-height:44px;display:inline-flex;align-items:center}
 .help-card{margin-top:15px;padding:18px 22px;background:#fff;border:1px solid #f1cad3;color:#c60027;border-radius:6px;box-shadow:0 8px 20px rgba(214,0,45,.08)}
 .help-card h2{color:#c60027;font-size:20px}
 .help-card p{font-size:12px;color:#5f6670}

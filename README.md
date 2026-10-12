@@ -73,3 +73,7 @@ Viettel Phú Hà · 0344.639.666 · thuntlpto.9x@gmail.com
 Sau đó mở admin, chọn **Phân loại sim** → tìm/lọc sim → tích các sim cần đổi → chọn phân loại và ngũ hành → **Lưu phân loại**. Có thể chọn qua nhiều trang, tối đa 500 sim mỗi lần. “Giữ nguyên ngũ hành” không sửa mệnh đang có. Backend xác thực phiên quản trị và chỉ cập nhật ô phân loại/ngũ hành/thời điểm của các sim được chọn; không sửa giá, trạng thái, ghi chú, khách hàng hoặc bot.
 
 `AppsScript-Admin.html`, `PhanLoai.gs` và các file kiểm thử không được xuất bản trong GitHub Pages hoặc `dist/`. `npm test` dùng dữ liệu mô phỏng; không chỉnh kho sim thật hay gửi thông báo Zalo thật.
+
+## Trang chủ hiển thị toàn bộ kho công khai
+
+Trang chủ hiển thị mọi phân loại sim chưa đặt ẩn trong admin, không giới hạn bốn sim và không tự lọc riêng trạng thái còn hàng. Tổng số sim và khoảng đang xem được hiển thị ngay trên danh sách. Kho lớn chia 24 sim mỗi trang để tải nhẹ trên điện thoại; giá và trạng thái vẫn theo Google Sheets. Sim đang giữ hoặc đã bán có nhãn tình trạng và không mở mua. Thay đổi này chỉ cần cập nhật website GitHub, không cần sửa Apps Script hoặc Sheet.

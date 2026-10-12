@@ -44,6 +44,34 @@ test('Red Viettel homepage keeps two SIM columns, banner artwork, touch controls
  await page.setViewportSize({width:390,height:844});await page.locator('.offer img').first().scrollIntoViewIfNeeded();await page.waitForFunction(()=>[...document.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth));await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.waitForFunction(()=>scrollY===0);await page.screenshot({path:'test-results/home-mobile.png',fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'test-results/home-desktop.png',fullPage:true});assert.deepEqual(errors,[]);
  }finally{await context.close();}
 });
+test('The homepage shows all five public SIMs across admin categories instead of truncating to four',async()=>{
+ const f=fixture();f.sims.push({id:5,number:'0925454686',price:999000,type:'Sim số đẹp',element:'Thổ',branch:'cs1',status:'available'});
+ const {context,page,errors}=await pageFor(320,750);
+ try{await connect(page,f);await page.goto(base+'/');await ready(page);
+  assert.equal(await page.locator('.home-grid .sim-card').count(),5);
+  assert.ok((await page.locator('.home-grid .sim-number').allTextContents()).some(n=>n.replace(/\D/g,'')==='0925454686'));
+  assert.match(await page.locator('.home-stock-count').innerText(),/Kho có 5 sim.*1–5/);
+  assert.equal(await page.locator('.home-featured .pagination').count(),0);
+  const request=f.reads.find(r=>r.action==='sims');assert.equal(request.params.size,'24');assert.ok(!request.params.status&&!request.params.type);
+  assert.ok((await fits(page)).scroll<=320);assert.deepEqual(errors,[]);
+ }finally{await context.close();}
+});
+test('Home pagination reaches the entire public inventory on a phone, preserves statuses and excludes hidden SIMs',async()=>{
+ const f=fixture();f.sims=Array.from({length:27},(_,i)=>({id:i+1,number:'098'+String(i).padStart(7,'0'),price:1000000,type:i%2?'Sim thần tài':'Sim số đẹp',branch:'cs1',status:i===0?'reserved':i===1?'sold':'available'}));
+ f.sims.push({id:100,number:'0989999999',price:2000000,type:'Sim phong thủy',branch:'cs1',status:'hidden'});
+ const {context,page,errors}=await pageFor(320,750);
+ try{await connect(page,f);await page.goto(base+'/lethuviettel1/');await ready(page);
+  assert.equal(await page.locator('.home-grid .sim-card').count(),24);assert.match(await page.locator('.home-stock-count').innerText(),/Kho có 27 sim.*1–24/);
+  assert.equal(await page.locator('[data-buy="1"],[data-buy="2"],[data-buy="100"]').count(),0);
+  assert.ok(await page.locator('.home-featured .pagination a').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().height>=44)));
+  await page.locator('.home-featured .pagination a').filter({hasText:'Tiếp'}).tap();await ready(page);
+  assert.match(page.url(),/\/lethuviettel1\/\?page=2$/);assert.equal(await page.locator('.home-grid .sim-card').count(),3);
+  assert.match(await page.locator('.home-stock-count').innerText(),/Kho có 27 sim.*25–27/);assert.equal(await page.locator('.home-featured .pagination a').filter({hasText:'Tiếp'}).count(),0);
+  assert.ok((await fits(page)).scroll<=320);assert.equal((await page.reload()).status(),200);await ready(page);assert.equal(await page.locator('.home-grid .sim-card').count(),3);
+  await page.locator('.home-featured .pagination a').filter({hasText:'Trước'}).tap();await ready(page);assert.equal(await page.locator('.home-grid .sim-card').count(),24);
+  assert.ok(f.reads.every(r=>r.action!=='sims'||Number(r.params.size)<=60));assert.deepEqual(errors,[]);
+ }finally{await context.close();}
+});
 test('Search, four categories, catalog filters, feng shui filters and direct reloads use real root files',async()=>{
  const f=fixture(),{context,page,errors}=await pageFor(320,750);try{await connect(page,f);await page.goto(base+'/');await ready(page);await page.locator('.search input').fill('6868');await page.locator('.search button').tap();await ready(page);assert.match(page.url(),/kho-sim\.html\?q=6868/);assert.equal(await page.locator('.sim-card').count(),1);assert.equal((await page.reload()).status(),200);await ready(page);
  await page.goto(base+'/kho-sim.html');await ready(page);await page.locator('.filter-toggle').tap();await page.locator('.filters [name=max_price]').selectOption('5000000');await page.locator('.filters .filter-buttons button').tap();await ready(page);assert.match(page.url(),/max_price=5000000/);assert.equal(await page.locator('.sim-card').count(),2);

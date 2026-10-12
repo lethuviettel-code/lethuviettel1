@@ -257,7 +257,7 @@ function home(data=null) {
  const cats=[['diamond','Sim số đẹp','Dễ nhớ · Khẳng định giá trị','/kho-sim','red'],['compass','Sim phong thủy','Hợp mệnh · Bình an','/sim-phong-thuy','dark-green'],['coin','Sim thần tài','Phát tài · Phát lộc','/kho-sim?type=Sim%20thần%20tài','red'],['trend','Sim lộc phát','Lộc đến nhà · Làm ăn phát đạt','/kho-sim?type=Sim%20lộc%20phát','dark-green']];
  return `${homeHero()}<main id="main" class="container home-main">
  <section class="home-categories" aria-label="Danh mục sim nổi bật">${cats.map(([icon,title,sub,url,color])=>link(url,`<i>${categoryIcon(icon)}</i><span class="category-copy"><strong>${title}</strong><small>${sub}</small></span>${ic('chev','category-arrow')}`,'home-category '+color)).join('')}</section>
- <div class="home-showcase"><section class="home-featured" aria-labelledby="stock-title"><div class="section-head"><h2 id="stock-title"><span class="section-icon" aria-hidden="true">♨</span> SIM SỐ ĐẸP NỔI BẬT</h2><div class="featured-tabs">${[['Tất cả','/kho-sim'],['Sim tam hoa','/kho-sim?type=Sim%20tam%20hoa'],['Sim tứ quý','/kho-sim?type=Sim%20tứ%20quý'],['Sim lộc phát','/kho-sim?type=Sim%20lộc%20phát']].map(([t,u],i)=>link(u,t,i===0?'selected':'')).join('')}</div>${link('/kho-sim','Xem tất cả'+ic('chev'),'all-sims-link')}</div><div class="sim-grid home-grid">${data?data.items.map(sim=>card(sim,false)).join('')||empty():homeSkeleton()}</div></section>${offerBanners()}</div>
+ <div class="home-showcase"><section class="home-featured" aria-labelledby="stock-title"><div class="section-head"><h2 id="stock-title"><span class="section-icon" aria-hidden="true">♨</span> SIM SỐ ĐẸP</h2><div class="featured-tabs">${[['Tất cả','/kho-sim'],['Sim tam hoa','/kho-sim?type=Sim%20tam%20hoa'],['Sim tứ quý','/kho-sim?type=Sim%20tứ%20quý'],['Sim lộc phát','/kho-sim?type=Sim%20lộc%20phát']].map(([t,u],i)=>link(u,t,i===0?'selected':'')).join('')}</div>${link('/kho-sim','Xem tất cả'+ic('chev'),'all-sims-link')}</div><p class="results home-stock-count" aria-live="polite">${data?`Kho có ${data.total.toLocaleString('vi-VN')} sim${data.total?` · Hiển thị ${(data.page-1)*data.size+1}–${Math.min(data.page*data.size,data.total)}`:''}`:'Đang cập nhật danh sách sim…'}</p><div class="sim-grid home-grid">${data?data.items.map(sim=>card(sim,false)).join('')||empty():homeSkeleton()}</div>${data?pager(data,'/',new URLSearchParams()):''}</section>${offerBanners()}</div>
  ${homeBenefits()}
  ${feedbackSection()}
  ${storeGallery()}
@@ -430,7 +430,7 @@ async function render(preserve=false) {
   let dataPath;
   if(path==='/kho-sim'||path==='/sim-phong-thuy'){const params=new URLSearchParams(routeSearch());params.set('size',24);dataPath='/api/sims?'+params;tasks.push(api('/api/sim-options').then(result=>{catalogTypes=result.types;if(activeState===state)paint(state);}).catch(()=>{}));}
   else if(/^\/sim\/\d+$/.test(path))dataPath='/api/sims/'+path.split('/')[2];
-  else if(path==='/')dataPath='/api/sims?size=4&status=available';
+  else if(path==='/'){const page=Math.max(1,Math.min(9999,parseInt(new URLSearchParams(routeSearch()).get('page')||'1',10)||1));dataPath='/api/sims?size=24&page='+page;}
   if(path==='/yeu-thich')tasks.push(loadFavorites(state));
   if(dataPath)tasks.push((path==='/kho-sim'||path==='/sim-phong-thuy'?catalogSims(path,new URLSearchParams(routeSearch())):api(dataPath)).then(async data=>{
     remember(data);pageModels.set(key,data);state.data=data;if(activeState===state)paint(state);
